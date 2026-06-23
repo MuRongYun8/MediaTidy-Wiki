@@ -57,6 +57,7 @@ export default defineConfig({
           items: [
             { text: '仪表盘与工具箱', link: '/features/dashboard' },
             { text: 'TMDB 缓存管理', link: '/features/tmdb-cache' },
+            { text: 'FF 缓存服务', link: '/features/ff-cache-server' },
           ],
         },
         {

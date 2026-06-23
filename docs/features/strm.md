@@ -138,3 +138,16 @@ STRM 生成完成后可自动触发 Emby 媒体库刷新：
 | **路径映射** | `embyPathMappings` | 本地路径 → Emby 路径的映射 |
 
 路径映射配置同[自动整理 - Emby 刷新联动](/features/organize#emby-刷新联动)。
+
+---
+
+## STRM 神医 FF 缓存
+
+MediaTidy 的「STRM 神医」会读取 Emby 媒体源信息，用于恢复或预热 STRM 播放所需的媒体流数据。新版远程 FF 缓存服务为神医单独提供 `strm_assistant_ff` 缓存域：
+
+- 先查本地 sidecar JSON 和本地缓存
+- 未命中时按文件 SHA1 查询远程神医缓存
+- 远程命中后直接恢复 Emby 媒体源信息
+- 未命中时再从 Emby 提取，并可批量上传到远程服务
+
+这能显著减少大规模 STRM 库迁移、重建、批量预热时的重复 Emby 查询。远程服务部署、授权和同步方式见 [FF 缓存服务](/features/ff-cache-server)。

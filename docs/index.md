@@ -22,7 +22,10 @@ features:
     details: 基于 TMDB 自动识别电影/电视剧，按规范命名和目录结构整理，支持洗版升级和多维度质量评分
   - icon: 📄
     title: STRM 生成
-    details: 将云端视频生成 .strm 文件供 Emby/Jellyfin 直接播放，支持 Webhook/监听/轮询实时触发
+    details: 将云端视频生成 .strm 文件供 Emby/Jellyfin 直接播放，支持 Webhook/监听/轮询实时触发，并可联动神医 FF 缓存
+  - icon: ⚡
+    title: FF 缓存服务
+    details: 远程复用整理 FFprobe 与 STRM 神医媒体源结果，支持多节点、授权、同步、统计和管理台
   - icon: 🖥️
     title: Emby 反向代理
     details: 内嵌反向代理引擎，302 重定向直链播放 + 预缓存 + 转码回落，自动 HTTPS 证书管理
