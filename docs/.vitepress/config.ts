@@ -18,6 +18,7 @@ export default defineConfig({
       { text: '功能', link: '/features/organize', activeMatch: '/features/' },
       { text: '配置', link: '/config/drive', activeMatch: '/config/' },
       { text: 'FAQ', link: '/faq' },
+      { text: '官方群组', link: 'https://t.me/MediaTidy_Offical' },
       { text: '联系作者', link: 'https://t.me/mhchat1_bot' },
     ],
 

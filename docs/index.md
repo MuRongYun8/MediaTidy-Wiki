@@ -15,6 +15,9 @@ hero:
     - theme: alt
       text: 功能介绍
       link: /features/organize
+    - theme: alt
+      text: 官方群组
+      link: https://t.me/MediaTidy_Offical
 
 features:
   - icon: 🎬
