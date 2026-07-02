@@ -6,9 +6,9 @@ layout: page
   <section class="mt-hero">
     <div class="mt-hero-inner">
       <div class="mt-hero-copy">
-        <div class="mt-kicker">MediaTidy 媒体管理系统</div>
-        <h1>专业媒体管理<br>从自动整理到直链播放</h1>
-        <p class="mt-lead">深度集成 115 网盘、CloudDrive2、Emby 与 FF 缓存，把下载目录、媒体库、STRM、播放链路和任务队列统一到一个控制台。</p>
+        <div class="mt-kicker">Go Powered Media Automation</div>
+        <h1>Go 语言驱动的<br>极速媒体管理引擎</h1>
+        <p class="mt-lead">为大规模媒体库打造的高性能自动化系统。深度集成 115 网盘、CloudDrive2、Emby、STRM 与 FF 缓存服务器，让整理、缓存、生成和播放链路都快起来。</p>
         <div class="mt-actions">
           <a class="mt-button mt-button-primary" href="/guide/beginner">新手部署</a>
           <a class="mt-button mt-button-secondary" href="/features/organize">功能介绍</a>
@@ -16,9 +16,10 @@ layout: page
         </div>
         <div class="mt-tags" aria-label="核心能力">
           <span>115 API</span>
+          <span>Go 高性能</span>
           <span>CD2 gRPC</span>
-          <span>STRM</span>
-          <span>FF 缓存</span>
+          <span>高速 STRM</span>
+          <span>FF 缓存服务器</span>
           <span>Emby 反代</span>
         </div>
       </div>
@@ -30,29 +31,28 @@ layout: page
     </div>
   </section>
 
-  <section class="mt-strip" aria-label="产品流程">
-    <div>
-      <strong>识别</strong>
-      <span>TMDB 自动匹配</span>
-    </div>
-    <div>
-      <strong>整理</strong>
-      <span>规范命名与归档</span>
-    </div>
-    <div>
-      <strong>缓存</strong>
-      <span>FFprobe / TMDB 复用</span>
-    </div>
-    <div>
-      <strong>播放</strong>
-      <span>STRM + Emby 直链</span>
-    </div>
+  <section class="mt-performance" aria-label="性能优势">
+    <a class="mt-perf-card mt-perf-primary" href="/features/ff-cache-server">
+      <span>FF CACHE SERVER</span>
+      <strong>FF 缓存服务器</strong>
+      <p>集中复用 FFprobe、TMDB 与神医媒体源结果，大批量整理、STRM 重建、Emby 迁移时减少重复解析。</p>
+    </a>
+    <a class="mt-perf-card" href="/guide/prerequisites">
+      <span>BUILT WITH GO</span>
+      <strong>Go 高性能架构</strong>
+      <p>并发任务队列、gRPC 文件访问、低资源占用，面向 NAS 与服务器长时间稳定运行。</p>
+    </a>
+    <a class="mt-perf-card" href="/features/strm">
+      <span>115 FAST PATH</span>
+      <strong>115 高速 STRM</strong>
+      <p>115 高速穿透生成播放链路，直连播放地址与 Emby / Jellyfin 媒体库自然衔接。</p>
+    </a>
   </section>
 
   <section class="mt-section">
     <div class="mt-section-head">
-      <p>Core Features</p>
-      <h2>一套系统管住媒体库的关键环节</h2>
+      <p>Core Engine</p>
+      <h2>为大规模媒体库而生的高性能引擎</h2>
     </div>
     <div class="mt-feature-grid">
       <a class="mt-feature" href="/features/organize">
@@ -67,8 +67,8 @@ layout: page
       </a>
       <a class="mt-feature" href="/features/ff-cache-server">
         <span>03</span>
-        <h3>FF 缓存中心</h3>
-        <p>复用 FFprobe 与神医媒体源结果，减少重复解析，让大规模媒体库恢复和重建更快。</p>
+        <h3>FF 缓存服务器</h3>
+        <p>复用 FFprobe、TMDB 与神医媒体源结果，减少重复解析，让大规模媒体库恢复和重建更快。</p>
       </a>
       <a class="mt-feature" href="/features/emby-proxy">
         <span>04</span>
@@ -119,6 +119,7 @@ layout: page
   --mt-cyan: #31e6d0;
   --mt-amber: #f6bf45;
   --mt-pink: #d565ff;
+  --mt-green: #00dc82;
 }
 
 .VPDoc {
@@ -164,18 +165,35 @@ layout: page
   min-height: 100vh;
   margin: 0;
   background:
-    linear-gradient(180deg, rgba(12, 16, 24, 0.58) 0%, var(--mt-bg) 420px),
-    radial-gradient(circle at 70% 16%, rgba(49, 230, 208, 0.16), transparent 34%),
-    linear-gradient(135deg, #090d16 0%, #11111d 50%, #0b1118 100%);
+    radial-gradient(circle at 18% 12%, rgba(0, 220, 130, 0.18), transparent 28%),
+    radial-gradient(circle at 74% 18%, rgba(85, 184, 255, 0.2), transparent 34%),
+    radial-gradient(circle at 92% 42%, rgba(213, 101, 255, 0.16), transparent 28%),
+    linear-gradient(180deg, rgba(12, 16, 24, 0.52) 0%, var(--mt-bg) 500px),
+    linear-gradient(135deg, #060a11 0%, #0d121c 44%, #070b12 100%);
   color: var(--mt-text);
 }
 
 .mt-hero {
   overflow: hidden;
   border-bottom: 1px solid var(--mt-line);
+  position: relative;
+}
+
+.mt-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(85, 184, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(85, 184, 255, 0.05) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.62), transparent 78%);
 }
 
 .mt-hero-inner {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: minmax(390px, 0.82fr) minmax(560px, 1.18fr);
   gap: 40px;
@@ -191,7 +209,7 @@ layout: page
 .mt-dashboard-copy p,
 .mt-quickstart p {
   margin: 0 0 16px;
-  color: var(--mt-cyan);
+  color: var(--mt-green);
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0;
@@ -204,6 +222,7 @@ layout: page
   font-size: 64px;
   line-height: 1.04;
   font-weight: 850;
+  text-shadow: 0 0 34px rgba(85, 184, 255, 0.18);
 }
 
 .mt-lead {
@@ -243,8 +262,9 @@ layout: page
 
 .mt-button-primary {
   border-color: transparent;
-  background: linear-gradient(135deg, #248cff, #22d3c8);
+  background: linear-gradient(135deg, #1d8cff, #00dc82);
   color: #fff;
+  box-shadow: 0 14px 34px rgba(0, 220, 130, 0.24);
 }
 
 .mt-button-secondary {
@@ -264,7 +284,7 @@ layout: page
 
 .mt-tags span {
   padding: 7px 10px;
-  border: 1px solid var(--mt-line);
+  border: 1px solid rgba(0, 220, 130, 0.24);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.04);
   color: #c9d5e6;
@@ -282,7 +302,7 @@ layout: page
   border: 1px solid rgba(124, 153, 255, 0.34);
   border-radius: 8px;
   background: #050814;
-  box-shadow: 0 32px 120px rgba(30, 116, 255, 0.24), 0 18px 56px rgba(0, 0, 0, 0.48);
+  box-shadow: 0 32px 120px rgba(30, 116, 255, 0.26), 0 18px 56px rgba(0, 0, 0, 0.48), 0 0 0 1px rgba(0, 220, 130, 0.08);
 }
 
 .mt-screen::before {
@@ -304,43 +324,84 @@ layout: page
   border-radius: 8px;
 }
 
-.mt-strip {
+.mt-performance {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: 1.28fr 1fr 1fr;
+  gap: 14px;
   max-width: 1180px;
-  margin: -40px auto 0;
-  border: 1px solid var(--mt-line);
+  margin: -54px auto 0;
+  padding: 0 24px;
+  position: relative;
+  z-index: 2;
+}
+
+.mt-perf-card {
+  position: relative;
+  min-height: 188px;
+  overflow: hidden;
+  padding: 26px;
+  border: 1px solid rgba(150, 175, 215, 0.18);
   border-radius: 8px;
-  background: rgba(15, 22, 34, 0.88);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.025)),
+    rgba(11, 17, 27, 0.9);
+  color: inherit;
+  text-decoration: none;
+  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.26);
+  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
 }
 
-.mt-strip div {
-  padding: 24px 28px;
-  border-right: 1px solid var(--mt-line);
+.mt-perf-card::before {
+  content: "";
+  position: absolute;
+  inset: -60% -20% auto auto;
+  width: 220px;
+  height: 220px;
+  border-radius: 999px;
+  background: rgba(85, 184, 255, 0.16);
+  filter: blur(4px);
 }
 
-.mt-strip div:last-child {
-  border-right: 0;
+.mt-perf-card:hover {
+  transform: translateY(-5px);
+  border-color: rgba(0, 220, 130, 0.42);
+  text-decoration: none;
 }
 
-.mt-strip strong {
+.mt-perf-primary {
+  border-color: rgba(0, 220, 130, 0.34);
+  background:
+    linear-gradient(135deg, rgba(0, 220, 130, 0.16), rgba(85, 184, 255, 0.08)),
+    rgba(9, 16, 25, 0.94);
+}
+
+.mt-perf-card span {
   display: block;
+  color: var(--mt-amber);
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0;
+}
+
+.mt-perf-card strong {
+  display: block;
+  margin-top: 18px;
   color: var(--mt-text);
-  font-size: 20px;
+  font-size: 25px;
+  line-height: 1.25;
 }
 
-.mt-strip span {
-  display: block;
-  margin-top: 8px;
+.mt-perf-card p {
+  margin: 16px 0 0;
   color: var(--mt-muted);
-  font-size: 14px;
+  font-size: 15px;
+  line-height: 1.75;
 }
 
 .mt-section {
   max-width: 1180px;
   margin: 0 auto;
-  padding: 104px 24px 48px;
+  padding: 86px 24px 48px;
 }
 
 .mt-section-head {
@@ -348,7 +409,7 @@ layout: page
   align-items: end;
   justify-content: space-between;
   gap: 32px;
-  margin-bottom: 28px;
+  margin-bottom: 30px;
 }
 
 .mt-section-head h2,
@@ -356,7 +417,7 @@ layout: page
 .mt-quickstart h2 {
   margin: 0;
   color: var(--mt-text);
-  font-size: 40px;
+  font-size: 44px;
   line-height: 1.2;
 }
 
@@ -369,9 +430,11 @@ layout: page
 .mt-feature {
   min-height: 230px;
   padding: 24px;
-  border: 1px solid var(--mt-line);
+  border: 1px solid rgba(150, 175, 215, 0.16);
   border-radius: 8px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.025));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.025)),
+    rgba(11, 16, 24, 0.78);
   color: inherit;
   text-decoration: none;
   transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
@@ -460,10 +523,14 @@ layout: page
     width: 100%;
   }
 
-  .mt-strip,
+  .mt-performance,
   .mt-feature-grid,
   .mt-dashboard {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mt-performance {
+    margin-top: 0;
   }
 }
 
@@ -505,23 +572,15 @@ layout: page
     font-size: 17px;
   }
 
-  .mt-strip,
+  .mt-performance,
   .mt-feature-grid,
   .mt-dashboard {
     grid-template-columns: 1fr;
   }
 
-  .mt-strip {
-    margin: 0 18px;
-  }
-
-  .mt-strip div {
-    border-right: 0;
-    border-bottom: 1px solid var(--mt-line);
-  }
-
-  .mt-strip div:last-child {
-    border-bottom: 0;
+  .mt-performance {
+    margin: 0;
+    padding: 0 18px;
   }
 
   .mt-section,
