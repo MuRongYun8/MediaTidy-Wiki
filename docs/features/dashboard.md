@@ -2,6 +2,8 @@
 
 仪表盘是 MediaTidy 的首页，提供系统状态、任务统计和快捷操作的全局概览。
 
+![MediaTidy 仪表盘与应用缓存管理](/media-tidy-dashboard.png)
+
 ## 概览面板
 
 ### 最近任务

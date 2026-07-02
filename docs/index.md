@@ -6,12 +6,12 @@ hero:
   text: 全自动媒体库管理工具
   tagline: 深度集成 115 网盘 / CloudDrive2 / Emby，从文件整理到直链播放的一站式解决方案
   image:
-    src: /logo.png
-    alt: MediaTidy
+    src: /media-tidy-promo.png
+    alt: MediaTidy 用户端与中心端宣传图
   actions:
     - theme: brand
       text: 快速开始
-      link: /guide/quick-start
+      link: /guide/beginner
     - theme: alt
       text: 功能介绍
       link: /features/organize
@@ -48,3 +48,34 @@ features:
     title: 海报卡片
     details: 整理完成后生成精美海报通知卡片，支持自定义字体和样式
 ---
+
+<section class="home-promo">
+  <img src="/media-tidy-promo.png" alt="MediaTidy 用户端与中心端，全能媒体管理解决方案" />
+</section>
+
+<style scoped>
+.home-promo {
+  max-width: 1120px;
+  margin: 16px auto 0;
+  padding: 0 24px 48px;
+}
+
+.home-promo img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
+}
+
+@media (max-width: 640px) {
+  .home-promo {
+    padding: 0 16px 32px;
+  }
+
+  .home-promo img {
+    border-radius: 8px;
+  }
+}
+</style>

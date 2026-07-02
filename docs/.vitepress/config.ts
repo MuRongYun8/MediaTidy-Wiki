@@ -14,7 +14,7 @@ export default defineConfig({
     siteTitle: 'MediaTidy',
 
     nav: [
-      { text: '指南', link: '/guide/quick-start', activeMatch: '/guide/' },
+      { text: '指南', link: '/guide/beginner', activeMatch: '/guide/' },
       { text: '功能', link: '/features/organize', activeMatch: '/features/' },
       { text: '配置', link: '/config/drive', activeMatch: '/config/' },
       { text: 'FAQ', link: '/faq' },
@@ -27,6 +27,7 @@ export default defineConfig({
         {
           text: '入门指南',
           items: [
+            { text: '新手须知', link: '/guide/beginner' },
             { text: '快速开始', link: '/guide/quick-start' },
             { text: '前置条件', link: '/guide/prerequisites' },
             { text: '升级指南', link: '/guide/upgrade' },
