@@ -10,8 +10,8 @@ layout: page
         <h1>Go 语言驱动的<br>极速媒体管理引擎</h1>
         <p class="mt-lead">为大规模媒体库打造的高性能自动化系统。深度集成 115 网盘、CloudDrive2、Emby、STRM 与 FF 缓存服务器，让整理、缓存、生成和播放链路都快起来。</p>
         <div class="mt-actions">
-          <a class="mt-button mt-button-primary" href="guide/beginner.html">新手部署</a>
-          <a class="mt-button mt-button-secondary" href="features/organize.html">功能介绍</a>
+          <a class="mt-button mt-button-primary" href="/MediaTidy-Wiki/guide/beginner.html">新手部署</a>
+          <a class="mt-button mt-button-secondary" href="/MediaTidy-Wiki/features/organize.html">功能介绍</a>
           <a class="mt-button mt-button-ghost" href="https://t.me/MediaTidy_Offical">官方群组</a>
         </div>
         <div class="mt-tags" aria-label="核心能力">
@@ -31,17 +31,17 @@ layout: page
   </section>
 
   <section class="mt-performance" aria-label="性能优势">
-    <a class="mt-perf-card mt-perf-primary" href="features/ff-cache-server.html">
+    <a class="mt-perf-card mt-perf-primary" href="/MediaTidy-Wiki/features/ff-cache-server.html">
       <span>FF CACHE SERVER</span>
       <strong>FF 缓存服务器</strong>
       <p>集中复用 FFprobe、TMDB 与神医媒体源结果，大批量整理、STRM 重建、Emby 迁移时减少重复解析。</p>
     </a>
-    <a class="mt-perf-card" href="guide/prerequisites.html">
+    <a class="mt-perf-card" href="/MediaTidy-Wiki/guide/prerequisites.html">
       <span>BUILT WITH GO</span>
       <strong>Go 高性能架构</strong>
       <p>并发任务队列、gRPC 文件访问、低资源占用，面向 NAS 与服务器长时间稳定运行。</p>
     </a>
-    <a class="mt-perf-card" href="features/strm.html">
+    <a class="mt-perf-card" href="/MediaTidy-Wiki/features/strm.html">
       <span>115 FAST PATH</span>
       <strong>115 高速 STRM</strong>
       <p>115 高速穿透生成播放链路，直连播放地址与 Emby / Jellyfin 媒体库自然衔接。</p>
@@ -54,32 +54,32 @@ layout: page
       <h2>为大规模媒体库而生的高性能引擎</h2>
     </div>
     <div class="mt-feature-grid">
-      <a class="mt-feature" href="features/organize.html">
+      <a class="mt-feature" href="/MediaTidy-Wiki/features/organize.html">
         <span>01</span>
         <h3>自动整理</h3>
         <p>基于 TMDB 识别电影与电视剧，自动命名、归档、分类，并支持洗版升级和质量评分。</p>
       </a>
-      <a class="mt-feature" href="features/strm.html">
+      <a class="mt-feature" href="/MediaTidy-Wiki/features/strm.html">
         <span>02</span>
         <h3>STRM 生成</h3>
         <p>将云端视频生成 .strm 文件供 Emby / Jellyfin 播放，支持定时、监听、轮询和 Webhook。</p>
       </a>
-      <a class="mt-feature" href="features/ff-cache-server.html">
+      <a class="mt-feature" href="/MediaTidy-Wiki/features/ff-cache-server.html">
         <span>03</span>
         <h3>FF 缓存服务器</h3>
         <p>复用 FFprobe、TMDB 与神医媒体源结果，减少重复解析，让大规模媒体库恢复和重建更快。</p>
       </a>
-      <a class="mt-feature" href="features/emby-proxy.html">
+      <a class="mt-feature" href="/MediaTidy-Wiki/features/emby-proxy.html">
         <span>04</span>
         <h3>Emby 反向代理</h3>
         <p>302 直链播放、预缓存、转码回落与 Webhook 联动，降低播放链路的维护成本。</p>
       </a>
-      <a class="mt-feature" href="features/file-manager.html">
+      <a class="mt-feature" href="/MediaTidy-Wiki/features/file-manager.html">
         <span>05</span>
         <h3>文件管理</h3>
         <p>统一虚拟路径，多 115 账号和通用挂载点集中管理，目录浏览与文件操作更直观。</p>
       </a>
-      <a class="mt-feature" href="features/rules.html">
+      <a class="mt-feature" href="/MediaTidy-Wiki/features/rules.html">
         <span>06</span>
         <h3>规则引擎</h3>
         <p>分类、命名、质量评分规则可视化配置，支持订阅同步，适配不同媒体库习惯。</p>
@@ -91,7 +91,7 @@ layout: page
     <div class="mt-dashboard-copy">
       <p>Dashboard</p>
       <h2>状态、任务、缓存和服务运行情况一眼看清</h2>
-      <a href="features/dashboard.html">查看仪表盘能力</a>
+      <a href="/MediaTidy-Wiki/features/dashboard.html">查看仪表盘能力</a>
     </div>
     <img src="/media-tidy-dashboard.png" alt="MediaTidy 仪表盘与应用缓存管理" />
   </section>
@@ -102,7 +102,7 @@ layout: page
       <h2>第一次部署，从这里开始</h2>
       <span>按步骤完成 Docker 部署、CD2、115、路径映射、自动整理、STRM 和 Emby 接入。</span>
     </div>
-    <a class="mt-button mt-button-primary" href="guide/beginner.html">打开新手须知</a>
+    <a class="mt-button mt-button-primary" href="/MediaTidy-Wiki/guide/beginner.html">打开新手须知</a>
   </section>
 </main>
 
@@ -325,7 +325,7 @@ body:has(.mt-home) .VPNavBarSearch .DocSearch-Button-Key {
 
 .mt-performance {
   display: grid;
-  grid-template-columns: 1.28fr 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
   max-width: 1180px;
   margin: -54px auto 0;
