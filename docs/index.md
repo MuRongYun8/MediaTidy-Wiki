@@ -15,7 +15,6 @@ layout: page
           <a class="mt-button mt-button-ghost" href="https://t.me/MediaTidy_Offical">官方群组</a>
         </div>
         <div class="mt-tags" aria-label="核心能力">
-          <span>115 API</span>
           <span>Go 高性能</span>
           <span>CD2 gRPC</span>
           <span>高速 STRM</span>
@@ -116,48 +115,48 @@ layout: page
   --mt-text: #f4f7fb;
   --mt-muted: #9aa7b8;
   --mt-blue: #55b8ff;
-  --mt-cyan: #31e6d0;
+  --mt-cyan: #9f7cff;
   --mt-amber: #f6bf45;
   --mt-pink: #d565ff;
-  --mt-green: #00dc82;
+  --mt-purple: #a879ff;
 }
 
-.VPDoc {
+body:has(.mt-home) .VPDoc {
   padding: 0 !important;
 }
 
-.VPDoc .container,
-.VPDoc .content,
-.VPDoc .content-container {
+body:has(.mt-home) .VPDoc .container,
+body:has(.mt-home) .VPDoc .content,
+body:has(.mt-home) .VPDoc .content-container {
   max-width: none !important;
   padding: 0 !important;
 }
 
-.VPNavBar {
+body:has(.mt-home) .VPNavBar {
   border-bottom: 1px solid rgba(150, 175, 215, 0.14) !important;
   background: rgba(8, 11, 18, 0.88) !important;
   backdrop-filter: blur(18px);
 }
 
-.VPNavBar .title,
-.VPNavBarMenuLink,
-.VPNavBarMenuGroup .button {
+body:has(.mt-home) .VPNavBar .title,
+body:has(.mt-home) .VPNavBarMenuLink,
+body:has(.mt-home) .VPNavBarMenuGroup .button {
   color: rgba(244, 247, 251, 0.92) !important;
 }
 
-.VPNavBarMenuLink:hover,
-.VPNavBarMenuGroup .button:hover {
+body:has(.mt-home) .VPNavBarMenuLink:hover,
+body:has(.mt-home) .VPNavBarMenuGroup .button:hover {
   color: #fff !important;
 }
 
-.VPNavBarSearch .DocSearch-Button,
-.VPNavBarSearch .DocSearch-Button:hover {
+body:has(.mt-home) .VPNavBarSearch .DocSearch-Button,
+body:has(.mt-home) .VPNavBarSearch .DocSearch-Button:hover {
   border: 1px solid rgba(150, 175, 215, 0.16);
   background: rgba(255, 255, 255, 0.06);
 }
 
-.VPNavBarSearch .DocSearch-Button-Placeholder,
-.VPNavBarSearch .DocSearch-Button-Key {
+body:has(.mt-home) .VPNavBarSearch .DocSearch-Button-Placeholder,
+body:has(.mt-home) .VPNavBarSearch .DocSearch-Button-Key {
   color: rgba(244, 247, 251, 0.72);
 }
 
@@ -165,11 +164,11 @@ layout: page
   min-height: 100vh;
   margin: 0;
   background:
-    radial-gradient(circle at 18% 12%, rgba(0, 220, 130, 0.18), transparent 28%),
-    radial-gradient(circle at 74% 18%, rgba(85, 184, 255, 0.2), transparent 34%),
-    radial-gradient(circle at 92% 42%, rgba(213, 101, 255, 0.16), transparent 28%),
+    radial-gradient(circle at 18% 12%, rgba(168, 121, 255, 0.22), transparent 28%),
+    radial-gradient(circle at 74% 18%, rgba(122, 101, 255, 0.2), transparent 34%),
+    radial-gradient(circle at 92% 42%, rgba(213, 101, 255, 0.18), transparent 28%),
     linear-gradient(180deg, rgba(12, 16, 24, 0.52) 0%, var(--mt-bg) 500px),
-    linear-gradient(135deg, #060a11 0%, #0d121c 44%, #070b12 100%);
+    linear-gradient(135deg, #080712 0%, #120d22 44%, #090712 100%);
   color: var(--mt-text);
 }
 
@@ -209,7 +208,7 @@ layout: page
 .mt-dashboard-copy p,
 .mt-quickstart p {
   margin: 0 0 16px;
-  color: var(--mt-green);
+  color: var(--mt-purple);
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0;
@@ -262,9 +261,9 @@ layout: page
 
 .mt-button-primary {
   border-color: transparent;
-  background: linear-gradient(135deg, #1d8cff, #00dc82);
+  background: linear-gradient(135deg, #7b61ff, #d565ff);
   color: #fff;
-  box-shadow: 0 14px 34px rgba(0, 220, 130, 0.24);
+  box-shadow: 0 14px 34px rgba(168, 121, 255, 0.28);
 }
 
 .mt-button-secondary {
@@ -284,7 +283,7 @@ layout: page
 
 .mt-tags span {
   padding: 7px 10px;
-  border: 1px solid rgba(0, 220, 130, 0.24);
+  border: 1px solid rgba(168, 121, 255, 0.3);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.04);
   color: #c9d5e6;
@@ -302,7 +301,7 @@ layout: page
   border: 1px solid rgba(124, 153, 255, 0.34);
   border-radius: 8px;
   background: #050814;
-  box-shadow: 0 32px 120px rgba(30, 116, 255, 0.26), 0 18px 56px rgba(0, 0, 0, 0.48), 0 0 0 1px rgba(0, 220, 130, 0.08);
+  box-shadow: 0 32px 120px rgba(123, 97, 255, 0.3), 0 18px 56px rgba(0, 0, 0, 0.48), 0 0 0 1px rgba(213, 101, 255, 0.12);
 }
 
 .mt-screen::before {
@@ -310,7 +309,7 @@ layout: page
   position: absolute;
   inset: -1px;
   border-radius: inherit;
-  background: linear-gradient(135deg, rgba(50, 223, 255, 0.34), rgba(246, 191, 69, 0.2), rgba(213, 101, 255, 0.28));
+  background: linear-gradient(135deg, rgba(123, 97, 255, 0.38), rgba(246, 191, 69, 0.16), rgba(213, 101, 255, 0.34));
   opacity: 0.56;
   z-index: 0;
 }
@@ -364,14 +363,14 @@ layout: page
 
 .mt-perf-card:hover {
   transform: translateY(-5px);
-  border-color: rgba(0, 220, 130, 0.42);
+  border-color: rgba(168, 121, 255, 0.48);
   text-decoration: none;
 }
 
 .mt-perf-primary {
-  border-color: rgba(0, 220, 130, 0.34);
+  border-color: rgba(168, 121, 255, 0.4);
   background:
-    linear-gradient(135deg, rgba(0, 220, 130, 0.16), rgba(85, 184, 255, 0.08)),
+    linear-gradient(135deg, rgba(168, 121, 255, 0.18), rgba(85, 184, 255, 0.08)),
     rgba(9, 16, 25, 0.94);
 }
 
@@ -535,27 +534,27 @@ layout: page
 }
 
 @media (max-width: 720px) {
-  .VPNavBar {
+  body:has(.mt-home) .VPNavBar {
     height: 64px !important;
   }
 
-  .VPNavBar .container {
+  body:has(.mt-home) .VPNavBar .container {
     height: 64px !important;
   }
 
-  .VPNavBarSearch .DocSearch-Button {
+  body:has(.mt-home) .VPNavBarSearch .DocSearch-Button {
     width: 42px !important;
     height: 42px !important;
     border-radius: 8px !important;
     padding: 0 !important;
   }
 
-  .VPNavBarSearch .DocSearch-Button-Placeholder,
-  .VPNavBarSearch .DocSearch-Button-Key {
+  body:has(.mt-home) .VPNavBarSearch .DocSearch-Button-Placeholder,
+  body:has(.mt-home) .VPNavBarSearch .DocSearch-Button-Key {
     display: none !important;
   }
 
-  .VPNavBarHamburger .container {
+  body:has(.mt-home) .VPNavBarHamburger .container {
     top: 50% !important;
     transform: translateY(-50%) !important;
   }
