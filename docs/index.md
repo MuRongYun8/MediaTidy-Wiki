@@ -121,6 +121,28 @@ layout: page
   --mt-purple: #a879ff;
 }
 
+body:has(.mt-home) {
+  --vp-c-bg: #080b12;
+  --vp-c-bg-alt: #0d111a;
+  --vp-c-bg-elv: #111722;
+  --vp-c-bg-soft: #151b27;
+  --vp-c-border: rgba(150, 175, 215, 0.18);
+  --vp-c-divider: rgba(150, 175, 215, 0.14);
+  --vp-c-text-1: rgba(244, 247, 251, 0.94);
+  --vp-c-text-2: rgba(201, 213, 230, 0.78);
+  --vp-c-text-3: rgba(154, 167, 184, 0.72);
+  --vp-c-gutter: rgba(150, 175, 215, 0.14);
+  --vp-nav-bg-color: rgba(8, 11, 18, 0.88);
+  --vp-nav-screen-bg-color: #080b12;
+  --vp-local-nav-bg-color: rgba(8, 11, 18, 0.9);
+}
+
+body:has(.mt-home),
+body:has(.mt-home) .Layout,
+body:has(.mt-home) .VPContent {
+  background: var(--mt-bg);
+}
+
 body:has(.mt-home) .VPDoc {
   padding: 0 !important;
 }
@@ -158,6 +180,22 @@ body:has(.mt-home) .VPNavBarSearch .DocSearch-Button:hover {
 body:has(.mt-home) .VPNavBarSearch .DocSearch-Button-Placeholder,
 body:has(.mt-home) .VPNavBarSearch .DocSearch-Button-Key {
   color: rgba(244, 247, 251, 0.72);
+}
+
+body:has(.mt-home) .VPSocialLink,
+body:has(.mt-home) .VPSwitch {
+  color: rgba(244, 247, 251, 0.74) !important;
+}
+
+body:has(.mt-home) .VPSwitch {
+  border-color: rgba(150, 175, 215, 0.28) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+
+body:has(.mt-home) .VPNavBarHamburger .top,
+body:has(.mt-home) .VPNavBarHamburger .middle,
+body:has(.mt-home) .VPNavBarHamburger .bottom {
+  background-color: rgba(244, 247, 251, 0.86) !important;
 }
 
 .mt-home {
