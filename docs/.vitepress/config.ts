@@ -27,6 +27,7 @@ export default defineConfig({
         {
           text: '入门指南',
           items: [
+            { text: 'MT 入门使用手册', link: '/guide/mt-manual' },
             { text: '新手须知', link: '/guide/beginner' },
             { text: '快速开始', link: '/guide/quick-start' },
             { text: '前置条件', link: '/guide/prerequisites' },

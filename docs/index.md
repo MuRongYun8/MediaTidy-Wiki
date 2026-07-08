@@ -10,7 +10,7 @@ layout: page
         <h1>Go 语言驱动的<br>极速媒体管理引擎</h1>
         <p class="mt-lead">为大规模媒体库打造的高性能自动化系统。深度集成 115 网盘、CloudDrive2、Emby、STRM 与 FF 缓存服务器，让整理、缓存、生成和播放链路都快起来。</p>
         <div class="mt-actions">
-          <a class="mt-button mt-button-primary" href="/MediaTidy-Wiki/guide/beginner.html">新手部署</a>
+          <a class="mt-button mt-button-primary" href="/MediaTidy-Wiki/guide/mt-manual.html">入门手册</a>
           <a class="mt-button mt-button-secondary" href="/MediaTidy-Wiki/features/organize.html">功能介绍</a>
           <a class="mt-button mt-button-ghost" href="https://t.me/MediaTidy_Offical">官方群组</a>
         </div>
@@ -31,7 +31,12 @@ layout: page
   </section>
 
   <section class="mt-performance" aria-label="性能优势">
-    <a class="mt-perf-card mt-perf-primary" href="/MediaTidy-Wiki/features/ff-cache-server.html">
+    <a class="mt-perf-card mt-perf-primary" href="/MediaTidy-Wiki/guide/mt-manual.html">
+      <span>GETTING STARTED</span>
+      <strong>MT 入门使用手册</strong>
+      <p>从 CD2、115、Docker 部署、Emby 接入，到缓存、自动整理和 STRM 生成，一篇走完整条新手链路。</p>
+    </a>
+    <a class="mt-perf-card" href="/MediaTidy-Wiki/features/ff-cache-server.html">
       <span>FF CACHE SERVER</span>
       <strong>FF 缓存服务器</strong>
       <p>集中复用 FFprobe、TMDB 与神医媒体源结果，大批量整理、STRM 重建、Emby 迁移时减少重复解析。</p>
@@ -99,10 +104,10 @@ layout: page
   <section class="mt-quickstart">
     <div>
       <p>Beginner Guide</p>
-      <h2>第一次部署，从这里开始</h2>
-      <span>按步骤完成 Docker 部署、CD2、115、路径映射、自动整理、STRM 和 Emby 接入。</span>
+      <h2>第一次使用，从这份手册开始</h2>
+      <span>按步骤完成 Docker 部署、CD2、115、路径映射、Emby、缓存服务、自动整理和 STRM 生成。</span>
     </div>
-    <a class="mt-button mt-button-primary" href="/MediaTidy-Wiki/guide/beginner.html">打开新手须知</a>
+    <a class="mt-button mt-button-primary" href="/MediaTidy-Wiki/guide/mt-manual.html">打开入门手册</a>
   </section>
 </main>
 
