@@ -85,7 +85,7 @@ MediaTidy 在授权失败时会保持进程存活（不退出），但 HTTP 服�
 
 ### 如何联系作者？
 
-可通过 Telegram 联系作者：[@mhchat1_bot](https://t.me/mhchat1_bot)
+可通过 Telegram 联系作者：[@murongyun574_bot](https://t.me/murongyun574_bot)
 
 也可以加入 MediaTidy 官方群组交流：[@MediaTidy_Offical](https://t.me/MediaTidy_Offical)
 

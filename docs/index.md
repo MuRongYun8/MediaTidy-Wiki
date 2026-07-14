@@ -41,11 +41,6 @@ layout: page
       <strong>FF 缓存服务器</strong>
       <p>集中复用 FFprobe、TMDB 与神医媒体源结果，大批量整理、STRM 重建、Emby 迁移时减少重复解析。</p>
     </a>
-    <a class="mt-perf-card" href="/MediaTidy-Wiki/guide/prerequisites.html">
-      <span>BUILT WITH GO</span>
-      <strong>Go 高性能架构</strong>
-      <p>并发任务队列、gRPC 文件访问、低资源占用，面向 NAS 与服务器长时间稳定运行。</p>
-    </a>
     <a class="mt-perf-card" href="/MediaTidy-Wiki/features/strm.html">
       <span>115 FAST PATH</span>
       <strong>115 高速 STRM</strong>
