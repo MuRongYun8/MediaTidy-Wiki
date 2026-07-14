@@ -31,10 +31,10 @@ layout: page
   </section>
 
   <section class="mt-performance" aria-label="性能优势">
-    <a class="mt-perf-card mt-perf-primary" href="/MediaTidy-Wiki/guide/mt-manual.html">
-      <span>GETTING STARTED</span>
-      <strong>MT 入门使用手册</strong>
-      <p>从 CD2、115、Docker 部署、Emby 接入，到缓存、自动整理和 STRM 生成，一篇走完整条新手链路。</p>
+    <a class="mt-perf-card mt-perf-primary" href="/MediaTidy-Wiki/features/organize.html">
+      <span>MEDIA ORGANIZATION</span>
+      <strong>自动整理</strong>
+      <p>基于 TMDB 识别媒体，自动完成命名、归档、分类与洗版升级，持续保持媒体库整洁。</p>
     </a>
     <a class="mt-perf-card" href="/MediaTidy-Wiki/features/ff-cache-server.html">
       <span>FF CACHE SERVER</span>
