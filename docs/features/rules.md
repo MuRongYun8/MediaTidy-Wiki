@@ -308,6 +308,10 @@ naming:
 当同时开启 ffprobe 探测时，`videoFormat`、`videoCodec`、`audioCodec`、`dynamicRange` 四个变量会被 ffprobe 结果覆盖（因为 ffprobe 从实际视频流提取，比文件名解析更准确）。如果你想明确使用 ffprobe 数据，可以直接用 `probeXxx` 系列变量。
 :::
 
+::: info 命名与轨道筛选的关系
+`probeAudio` 和 `probeSubtitle` 用于生成文件名中的音频、字幕摘要。`scoring.audio_codec` 和 `scoring.subtitle` 中的轨道条件用于筛选资源，不会改变命名模板，也不会调整媒体内部的轨道、顺序或默认标记。
+:::
+
 ### 模板语法说明
 
 - 文件夹路径用 `/` 分隔层级
@@ -359,137 +363,488 @@ naming:
 
 ## 质量评分规则
 
-质量评分规则用于**洗版升级**场景——当目标目录已有同一部影片时，对比新旧文件的质量分数，决定是否替换。
+质量评分规则在整理方案开启**洗版升级**后生效，同时用于首次入库候选筛选和后续洗版比较。系统先判断资源是否满足硬性条件，再计算总分；不合格资源不会因为分数高而替换合格资源。
+
+在 `scoring.audio_codec` 和 `scoring.subtitle` 中，可以使用字符串或轨道条件对象设置 `priority`。字符串适合按音频、字幕摘要排序；轨道条件对象适合按具体轨道的语言、编码、声道、来源和标记筛选。两种写法可以单独使用，也可以放在同一个列表中。
+
+### 处理顺序
+
+1. 检查音轨、字幕轨的最少/最多数量。
+2. 检查启用且 `required: true` 的音轨或字幕条件是否至少命中一个。
+3. 任一硬条件失败，资源标记为不合格，并记录全部原因。
+4. 两个资源都合格时，先比较总分。
+5. 总分完全相同时，比较命中的 `priority` 等级。
+6. 优先级也相同时，才使用 `preferred_tracks` 距离破同分。
+7. 两个资源都不合格时保留现有资源；首次整理没有合格资源时跳过。
+
+::: tip 关键区别
+`required`、`min_tracks`、`max_tracks` 是资格条件；`weight` 和 `priority` 是评分条件；`preferred_tracks` 只负责同分破局。三者不要混为一谈。
+:::
+
+### 基本写法
+
+除音轨和字幕轨条件外，各评分项都使用字符串 `priority` 列表。例如：
+
+```yaml
+resolution:
+  enabled: true
+  weight: 20
+  priority:
+    - 2160p
+    - 1080p
+    - 720p
+```
+
+- `enabled: true`：启用该评分项。
+- `weight`：该项对总分的影响程度，可以使用小数或负数。
+- `priority`：从上到下排列偏好，第一项得分最高，未命中得 0 分。
+- 字符串匹配不区分大小写，并支持以空格或 `+` 分隔的前缀匹配。例如 `Dolby Vision` 可以匹配 `Dolby Vision P8`，`Remux` 可以匹配 `Remux+BluRay`。
+- 文件名和媒体信息都无法提供该项的值时，该项不计分。
 
 ### 评分公式
 
-```
-总分 = Σ (维度权重 × 维度位置分)
+```text
+总分 = Σ（维度权重 × 维度位置分）
 ```
 
-- **位置分**：由 `priority` 列表决定，排名越靠前得分越高
-- **权重 (`weight`)**：控制该维度对总分的影响程度
-- 可以将权重设为 **负值**（如省空间方案中 `file_size: -10`，文件越大扣分越多）
+- `priority` 有 `N` 项时，第 1 项位置分为 `10`，第 2 项为 `10 × (N-1) / N`，最后一项为 `10 / N`，未命中为 `0`。
+- `weight` 控制该维度对总分的影响。
+- `file_size`、`bitrate`、`video_bitrate` 使用连续数值公式，不使用 `priority`。
+- 负权重仍然可用，例如用负的 `file_size` 权重偏好较小文件。
+
+例如 `priority: [2160p, 1080p, 720p]` 的位置分依次为 `10`、`6.67`、`3.33`；当 `weight: 20` 时，对应维度得分为 `200`、`133.33`、`66.67`。
 
 ### 评分维度
 
 | 维度 | YAML 键 | 数据来源 | 说明 |
 |------|---------|----------|------|
-| **分辨率** | `resolution` | 文件名 / ffprobe | 4320p > 2160p > 1080p > 720p ... |
-| **片源** | `source` | 文件名 | Remux+UHD BluRay > BluRay > WEB-DL ... |
-| **视频编码** | `video_codec` | 文件名 / ffprobe | AV1 > H.265 > H.264 ... |
-| **音频编码** | `audio_codec` | 文件名 / ffprobe | DTS:X > TrueHD Dolby Atmos > DTS-HD MA ... |
-| **HDR** | `hdr` | 文件名 / ffprobe | Dolby Vision P7 > P8 > HDR10+ > HDR10 > SDR |
-| **色深** | `color_depth` | ffprobe | 12-bit > 10-bit > 8-bit |
-| **帧率** | `frame_rate` | ffprobe | 120fps > 60fps > 30fps ... |
-| **字幕** | `subtitle` | ffprobe | PGS 简体中文 > ASS > SRT ... |
-| **容器格式** | `file_extension` | 文件名 | mkv > mp4 > ts ... |
-| **文件大小** | `file_size` | 文件属性 | 对数公式，越大越高（~50GB 饱和） |
-| **码率** | `bitrate` | ffprobe | 对数公式，越高越好（~100Mbps 饱和） |
+| 分辨率 | `resolution` | 文件名 / ffprobe | 4320p、2160p、1080p 等 |
+| 片源 | `source` | 文件名 | Remux、BluRay、WEB-DL 等 |
+| 视频编码 | `video_codec` | 文件名 / ffprobe | AV1、H.265、H.264 等 |
+| 音频编码/音轨 | `audio_codec` | 文件名 / ffprobe | 可按音频摘要或具体音轨条件匹配 |
+| HDR | `hdr` | 文件名 / ffprobe | Dolby Vision、HDR10+、HDR10、SDR 等 |
+| 色深 | `color_depth` | 文件名 / ffprobe | 12-bit、10-bit、8-bit |
+| 帧率 | `frame_rate` | 文件名 / ffprobe | 120fps、60fps、24fps 等 |
+| 字幕/字幕轨 | `subtitle` | ffprobe；轨道条件还可使用可靠关联外挂字幕 | 可按字幕摘要或具体字幕轨条件匹配 |
+| 容器格式 | `file_extension` | 文件名 / ffprobe | mkv、mp4、ts 等 |
+| 文件大小 | `file_size` | 文件属性 | 对数公式，约 50GB 后趋于饱和 |
+| 容器总码率 | `bitrate` | 文件名 / ffprobe | 对数公式，越高分数越高 |
+| 视频流码率 | `video_bitrate` | 文件名 / ffprobe | 仅使用视频流码率，不用容器码率冒充 |
 
-::: warning 注意
-`color_depth`、`frame_rate`、`subtitle`、`bitrate` 维度需要开启 **ffprobe 探测** 才能获取数据。未开启时这些维度不参与评分。
+### 各评分项怎么写
+
+| YAML 键 | 常用 `priority` 值 | 使用说明 |
+|----------|-------------------|----------|
+| `resolution` | `[4320p, 2160p, 1080p, 720p]` | ffprobe 有结果时使用实际视频分辨率，否则使用文件名识别值 |
+| `source` | `[Remux+UHD BluRay, Remux+BluRay, UHD BluRay, BluRay, WEB-DL, Unknown]` | 从文件名识别；无法识别时按 `Unknown` 匹配 |
+| `video_codec` | `[AV1, H.265, H.264, VP9]` | ffprobe 有结果时使用实际视频编码，否则使用文件名识别值 |
+| `audio_codec` | `[DTS:X, TrueHD Dolby Atmos, DTS-HD MA, Dolby TrueHD, AAC]` | 字符串按音频摘要评分；需要限定语言、声道或标记时使用下方轨道条件 |
+| `hdr` | `[Dolby Vision P7, Dolby Vision P8, Dolby Vision, HDR10+, HDR10, HLG, HDR, SDR]` | 一个文件识别到多个 HDR 值时，采用列表中得分最高的一项；未识别到 HDR 时按 `SDR` 匹配 |
+| `color_depth` | `[12-bit, 10-bit, 8-bit]` | 可从文件名识别；开启元数据提取后优先使用实际视频流信息 |
+| `frame_rate` | `[120fps, 60fps, 30fps, 25fps, 24fps]` | `23.976fps` 会按 `24fps` 参与评分；开启元数据提取后优先使用实际视频流信息 |
+| `subtitle` | `[PGS 简体中文, ASS 简体中文, SRT 简体中文, PGS, ASS, SRT]` | 字符串按字幕摘要评分；需要限定语言、来源或标记时使用下方轨道条件 |
+| `file_extension` | `[mkv, mp4, ts, m2ts]` | 填写不带点号的小写或大写扩展名均可 |
+
+#### 片源中的 Remux
+
+从文件名同时识别到 Remux 和片源时，`source` 使用组合值：
+
+| 识别结果 | `source` 匹配值 |
+|----------|-----------------|
+| Remux + UHD BluRay | `Remux+UHD BluRay` |
+| Remux + BluRay | `Remux+BluRay` |
+| 只有 Remux | `Remux+BD` |
+| 无法识别片源 | `Unknown` |
+
+### 文件大小和码率
+
+这三个评分项只需要设置 `enabled` 和 `weight`，不要填写 `priority`：
+
+```yaml
+file_size:
+  enabled: true
+  weight: 5
+bitrate:
+  enabled: true
+  weight: 10
+video_bitrate:
+  enabled: true
+  weight: 15
+```
+
+| YAML 键 | 取值方式 | 计分范围 |
+|----------|----------|----------|
+| `file_size` | 文件实际大小 | 小于 0.1GB 时为 0 分，约 50GB 达到最高位置分 10 |
+| `bitrate` | ffprobe 的容器总码率；没有时可识别文件名中的 `16.8Mbps` | 小于 0.5Mbps 时为 0 分，约 100Mbps 达到最高位置分 10 |
+| `video_bitrate` | ffprobe 的主视频流码率；没有时可识别文件名中的 `V16.8Mbps` | 小于 0.5Mbps 时为 0 分，约 100Mbps 达到最高位置分 10 |
+
+`video_bitrate` 不会使用容器总码率代替。洗版比较时，如果候选资源或现有资源有一方无法取得某种码率，该码率评分项不会参与这一次比较，避免只有一方有数据造成误判。
+
+### 音轨和字幕轨公共字段
+
+以下字段仅用于 `audio_codec` 和 `subtitle`：
+
+| 字段 | 类型 | 作用 |
+|------|------|------|
+| `enabled` | boolean | 是否启用该评分维度 |
+| `required` | boolean | 至少一个 `priority` 条目必须命中，否则资源不合格 |
+| `min_tracks` | integer | 全部可用轨道数量不得少于此值；`0` 表示不限制 |
+| `max_tracks` | integer | 全部可用轨道数量不得超过此值；`0` 表示不限制 |
+| `preferred_tracks` | integer | 理想轨道数量，只在总分和优先级相同时破同分 |
+| `weight` | number | 该维度的评分权重 |
+| `priority` | list | 有序的字符串或轨道条件列表 |
+
+轨道数量口径：
+
+- 音轨：视频文件内的全部音频流。
+- 字幕轨：全部内封字幕流 + 可靠关联的外挂字幕文件。
+- 未知语言、评论轨和听障轨也计入总数量。
+- 外挂字幕按文件路径去重。
+
+### 轨道条件的匹配规则
+
+```yaml
+priority:
+  - languages: [zh-CN]
+    source: any
+    hearing_impaired: false
+  - languages: [zh-TW, zh-HK]
+    source: any
+```
+
+- 一个对象内的字段是 **AND**：必须由同一条轨道同时满足。
+- `priority` 各条目之间是 **OR**：命中任意一项即可，越靠前等级越高。
+- 同一资源有多条轨道命中时，只取最高等级的一条计分。
+- 不能用 A 音轨的语言和 B 音轨的编码拼成一次命中。
+- 布尔字段省略表示“不限制”；明确写 `false` 才表示“必须为否”。
+- 字符串条目和对象条目可以混用，并共享同一套列表顺序。
+
+### 音轨条件字段
+
+| 字段 | 类型 | 说明 | 示例 |
+|------|------|------|------|
+| `languages` | string[] | 音轨语言 | `[zh, zh-CN, yue]` |
+| `codecs` | string[] | 音频编码族 | `[Dolby TrueHD]`、`[DTS-HD MA]` |
+| `profiles` | string[] | ffprobe 音频 Profile | `[DTS-HD MA]` |
+| `min_channels` | integer | 最少声道数 | `8` = 至少 7.1 |
+| `max_channels` | integer | 最多声道数 | `6` = 最多 5.1 |
+| `atmos` | boolean | 是否为 Atmos | `true` |
+| `default` | boolean | 是否为默认音轨 | `false` |
+| `forced` | boolean | 是否为强制音轨 | `false` |
+| `commentary` | boolean | 是否为评论音轨 | `false` |
+| `hearing_impaired` | boolean | 是否为听障音轨 | `false` |
+| `visual_impaired` | boolean | 是否为视觉障碍辅助音轨 | `false` |
+| `original` | boolean | 是否标记为原声 | `true` |
+| `dub` | boolean | 是否标记为配音 | `true` |
+
+`Dolby TrueHD` 会匹配 ffprobe 输出的 `TrueHD Dolby Atmos 7.1` 编码族；是否必须为 Atmos 应由 `atmos: true` 单独约束。
+
+### 字幕条件字段
+
+| 字段 | 类型 | 说明 | 示例 |
+|------|------|------|------|
+| `languages` | string[] | 字幕语言 | `[zh, zh-CN, zh-TW, zh-HK]` |
+| `formats` | string[] | 字幕格式 | `[PGS, ASS, SRT]` |
+| `source` | string | `embedded`、`external` 或 `any` | `any` |
+| `default` | boolean | 是否为默认字幕 | `false` |
+| `forced` | boolean | 是否为强制字幕 | `false` |
+| `commentary` | boolean | 是否为评论字幕 | `false` |
+| `hearing_impaired` | boolean | 是否为听障字幕 | `false` |
+
+### 语言代码与中文识别
+
+| 规则值 | 含义 | 常见别名/来源 |
+|--------|------|---------------|
+| `zh` | 泛中文，匹配任意 `zh-*` | `chi`、`zho`、`cmn`、`chinese`、`中文` |
+| `zh-CN` | 明确的简体中文 | `chs`、`zh-Hans`、`简体中文`、`简中` |
+| `zh-TW` | 明确的繁体中文 | `cht`、`zh-Hant`、`繁体中文`、`繁中` |
+| `zh-HK` | 香港繁体中文 | `zh-HK`、`zh-MO` |
+| `yue` | 粤语 | `cantonese`、`粤语`、`粵語` |
+| `en` | 英语 | `eng`、`english` |
+| `und` | 无法识别语言 | language 标签和标题/文件名均无可靠标记 |
+
+::: warning “中文”与“简体中文”不同
+`chi`、`zho`、`cmn` 只能证明是泛中文，不能证明是简体。只接受简体时使用 `languages: [zh-CN]`；接受任意中文字幕时建议使用 `[zh, zh-CN, zh-TW, zh-HK]`。
 :::
 
-### YAML 格式
+如果 ffprobe 的 `language` 标签为空，系统会继续检查轨道标题中的“简中、繁中、粤语、English”等可靠文字。仍无法识别时使用 `und`。
+
+### 外挂字幕如何关联
+
+外挂字幕只有在同目录并能可靠关联主视频时才计入。可靠情况包括：
+
+- 完整媒体基名相同：`Movie.mkv` + `Movie.srt`。
+- 在完整媒体基名后增加已知语言或字幕标记：`Movie.zh-CN.srt`、`Movie.chs.ass`、`Movie.en.forced.srt`。
+- 剧集文件使用完整集文件基名：`Show.S01E03.mkv` + `Show.S01E03.zh-CN.ass`。
+
+`Movie2.srt`、`MovieExtra.srt`、`Movie-edition.srt` 这类模糊前缀不会满足硬性字幕要求。
+
+#### 外挂字幕没有语言标记
+
+`Movie.srt` 能可靠确认“属于 Movie”，但不能确认字幕语言，因此：
+
+- 会作为一条 `external` 字幕计入 `min_tracks`、`max_tracks` 和 `preferred_tracks`。
+- 语言为 `und`。
+- 不能满足 `languages: [zh-CN]` 或 `languages: [zh]`。
+- 可以满足没有填写 `languages` 的条件，例如 `formats: [SRT]` + `source: external`。
+- 系统不会读取字幕正文猜测语言，避免把英文字幕误判为中文字幕。
+
+### 示例一：必须有任意中文字幕
+
+最多 5 条字幕，理想 2 条；简体优先，其次繁体：
+
+```yaml
+subtitle:
+  enabled: true
+  required: true
+  min_tracks: 1
+  max_tracks: 5
+  preferred_tracks: 2
+  weight: 20
+  priority:
+    - languages: [zh-CN]
+      source: any
+      hearing_impaired: false
+    - languages: [zh, zh-TW, zh-HK]
+      source: any
+      hearing_impaired: false
+```
+
+结果示例：
+
+| 资源 | 结果 | 原因 |
+|------|------|------|
+| 内封 `zh-CN` ASS + 外挂英文 SRT | 合格 | 第一优先级命中，字幕共 2 条 |
+| `Movie.chi.srt` | 合格 | `chi` 归一化为泛中文 `zh`，命中第二优先级 |
+| `Movie.srt`，无语言标记 | 不合格 | 字幕存在但语言为 `und`，没有命中中文条件 |
+| 8 条字幕且包含简中 | 不合格 | 超过 `max_tracks: 5`，即使中文条件命中也会拒绝 |
+
+### 示例二：只接受简体中文字幕
+
+```yaml
+subtitle:
+  enabled: true
+  required: true
+  weight: 20
+  priority:
+    - languages: [zh-CN]
+      source: any
+      hearing_impaired: false
+```
+
+`.zh-CN.srt`、`.chs.ass` 或标题标记为“简中”的内封字幕可以命中；`.chi.srt`、繁体字幕和无语言标记字幕不能命中。
+
+### 示例三：必须有中文高规格音轨
+
+最多 3 条音轨，理想 2 条；优先 TrueHD Atmos 7.1，其次 DTS-HD MA 5.1，最后接受中文立体声：
+
+```yaml
+audio_codec:
+  enabled: true
+  required: true
+  min_tracks: 1
+  max_tracks: 3
+  preferred_tracks: 2
+  weight: 20
+  priority:
+    - languages: [zh, zh-CN, yue]
+      codecs: [Dolby TrueHD]
+      min_channels: 8
+      atmos: true
+      commentary: false
+    - languages: [zh, zh-CN, yue]
+      codecs: [DTS-HD MA]
+      min_channels: 6
+      commentary: false
+    - languages: [zh, zh-CN, yue]
+      min_channels: 2
+      commentary: false
+```
+
+注意：一条英文 TrueHD Atmos 音轨和另一条中文 AAC 音轨不能拼成第一项命中，因为语言、编码、声道和 Atmos 必须来自同一条音轨。
+
+### 示例四：只限制轨道数量
+
+如果不要求特定语言或编码，只是不想要轨道太多，可以只配置数量：
+
+```yaml
+audio_codec:
+  enabled: true
+  max_tracks: 3
+  preferred_tracks: 2
+  weight: 20
+  priority:
+    - Dolby TrueHD
+    - DTS-HD MA
+    - AAC
+
+subtitle:
+  enabled: true
+  max_tracks: 5
+  preferred_tracks: 2
+  weight: 10
+  priority:
+    - PGS 简体中文
+    - ASS 简体中文
+    - SRT 简体中文
+```
+
+这里 `max_tracks` 是硬限制；`preferred_tracks` 不会淘汰资源，也不会改变显示总分。
+
+### 示例五：混合使用字符串和轨道条件
+
+```yaml
+audio_codec:
+  enabled: true
+  weight: 20
+  priority:
+    - Dolby TrueHD
+    - languages: [zh-CN]
+      codecs: [DTS-HD MA]
+      min_channels: 6
+    - AAC
+```
+
+三个条目按列出的顺序共同参与优先级评分：字符串匹配音频编码摘要，条件对象匹配满足全部条件的具体音轨。
+
+### 完整可复制示例
+
+下面是一条同时要求中文字幕和中文音轨、并限制轨道数量的完整质量规则：
 
 ```yaml
 quality:
-  - name: 规则显示名称
-    id: 唯一标识符
+  - name: 中文轨道收藏
+    id: chinese-tracks
     scoring:
       resolution:
-        enabled: true           # 是否启用此维度
-        weight: 25              # 权重（越大影响越大）
-        priority:               # 优先级列表（排名越前得分越高）
-          - 2160p
-          - 1080p
-          - 720p
-      file_size:
         enabled: true
-        weight: 10              # file_size/bitrate 无 priority，使用对数公式
+        weight: 25
+        priority: [2160p, 1080p, 720p]
+
+      video_codec:
+        enabled: true
+        weight: 10
+        priority: [AV1, H.265, H.264]
+
+      audio_codec:
+        enabled: true
+        required: true
+        min_tracks: 1
+        max_tracks: 3
+        preferred_tracks: 2
+        weight: 20
+        priority:
+          - languages: [zh, zh-CN, yue]
+            codecs: [Dolby TrueHD]
+            min_channels: 8
+            atmos: true
+            commentary: false
+          - languages: [zh, zh-CN, yue]
+            codecs: [DTS-HD MA]
+            min_channels: 6
+            commentary: false
+          - languages: [zh, zh-CN, yue]
+            min_channels: 2
+            commentary: false
+
+      subtitle:
+        enabled: true
+        required: true
+        min_tracks: 1
+        max_tracks: 5
+        preferred_tracks: 2
+        weight: 20
+        priority:
+          - languages: [zh-CN]
+            source: any
+            hearing_impaired: false
+          - languages: [zh, zh-TW, zh-HK]
+            source: any
+            hearing_impaired: false
+
+      file_extension:
+        enabled: true
+        weight: 5
+        priority: [mkv, mp4, ts]
+
     exclude:
-      resolutions: ["480p"]     # 排除这些分辨率的文件（不参与评分）
-      codecs: ["MPEG-2", "Xvid"]
+      resolutions: [480p, 360p]
+      codecs: [MPEG-2, Xvid]
       hdr_types: []
+
+    version:
+      enabled: false
 ```
 
-### 片源 (source) 特殊格式
+使用这条规则时，只有同时存在合格中文音轨和中文字幕、且音轨/字幕数量没有超限的资源才有资格入库或洗版。分辨率、视频编码和容器格式只影响合格资源之间的总分。
 
-Remux 版本必须使用组合格式，不能单独写 `Remux`：
+### 使用轨道条件前的准备
 
-| 值 | 说明 |
-|----|------|
-| `Remux+UHD BluRay` | UHD 蓝光原盘提取 |
-| `Remux+BluRay` | 蓝光原盘提取 |
-| `Remux+BD` | BD 原盘提取 |
-| `Unknown` | 无法识别来源的文件映射为此值 |
+使用轨道条件或轨道数量限制时，请在整理方案中开启源文件和目标文件的元数据提取。无法取得轨道信息时：
 
-### 音频编码标准名称
+- 普通轨道偏好条件记 0 分，不会单独淘汰资源。
+- `required`、`min_tracks`、`max_tracks` 无法验证时，资源判定为不合格，并显示“轨道信息未提取”。
+- 评分对比工具在没有目录伴随文件信息时只统计内封字幕；整理文件时还会统计可靠关联的外挂字幕。
 
-评分规则中的音频编码名称必须与 ffprobe 输出一致：
+### 配置校验
 
-| 名称 | 说明 |
-|------|------|
-| `DTS:X` | 对象式 DTS |
-| `TrueHD Dolby Atmos 7.1` | TrueHD Atmos 7.1 声道 |
-| `DTS-HD MA 7.1` / `DTS-HD MA 5.1` | DTS 无损（带声道） |
-| `Dolby TrueHD` | TrueHD 无 Atmos |
-| `DTS-HD` | DTS-HD（非 MA） |
-| `Dolby Digital Plus Atmos` | EAC3 Atmos |
-| `Dolby Digital Plus` | EAC3 |
-| `Dolby Digital` | AC3 |
+保存前会完整解析并校验。以下配置会拒绝保存，原有效配置保持不变：
+
+- `required: true` 但 `priority` 为空。
+- 数量为负数，或 `min_tracks > max_tracks`。
+- `preferred_tracks` 不在已设置的最小/最大范围内。
+- `min_channels > max_channels`。
+- 音频条件使用 `formats`/`source`，或字幕条件使用 `codecs`/`atmos` 等错误字段。
+- `source` 不是 `embedded`、`external`、`any`。
+- 轨道条件没有填写任何匹配字段。
+- 在音轨/字幕以外的普通评分维度使用轨道资格或数量字段。
 
 ### 排除规则
 
-排除规则可以在评分前直接过滤掉不需要的文件：
+排除规则在评分前过滤资源：
 
 ```yaml
 exclude:
-  resolutions:          # 排除这些分辨率
-    - 480p
-    - 360p
-  codecs:               # 排除这些编码
-    - MPEG-2
-    - Xvid
-    - DivX
-  hdr_types: []         # 排除这些 HDR 类型（空 = 不排除）
+  resolutions: [480p, 360p]
+  codecs: [MPEG-2, Xvid, DivX]
+  hdr_types: []
 ```
 
-### 内置评分方案
-
-| 方案 | ID | 特点 |
-|------|----|----|
-| **均衡评分** | `balanced` | 不开 ffprobe，仅靠文件名 + 文件大小，速度最快 |
-| **画质优先** | `quality-first` | 分辨率 + HDR + 码率权重最高，开启 ffprobe |
-| **音质优先** | `audio-first` | 音频编码权重 35（最高），开启字幕评分 |
-| **省空间** | `size-first` | 偏好 WEB-DL/H.265/AAC，文件大小负权重 |
-| **Remux 收藏** | `remux-collector` | 片源权重最高，排除低清和过时编码 |
-| **全维度探测** | `full-probe` | 开启所有 11 个维度，最全面但最慢 |
-| **多版本均衡** | `multi-balanced` | 按分辨率+HDR 自动保留多版本 |
-| **多版本精选** | `multi-curated` | 精选 4K DV + 4K HDR + 1080p 三个版本 |
+- `resolutions`：按最终识别到的分辨率精确匹配。
+- `codecs`：按最终识别到的视频编码精确匹配。
+- `hdr_types`：按最终识别到的 HDR 值精确匹配；未识别到 HDR 的资源按 `SDR` 处理。
+- 匹配不区分大小写，但不使用 `priority` 的前缀匹配规则。例如排除 `HDR10` 不等于排除所有以 `HDR10` 开头的值。
+- 命中任意一项就会跳过该资源，不再计算质量分数。
 
 ### 多版本功能
 
-多版本功能允许同一部影片保留多个不同规格的版本（如同时保留 4K HDR 和 1080p SDR）。
+每个版本槽位内部都使用相同的资格判断和评分比较，不合格资源不能绕过轨道要求进入某个槽位。
 
-**Mode A：维度自动分槽**
+#### 按字段自动分槽
 
 ```yaml
 version:
   enabled: true
-  dimensions: [resolution, hdr]  # 按这些维度组合自动创建槽位
-  max_versions: 3                 # 最多保留 3 个版本
+  dimensions: [resolution, hdr]
 ```
 
-系统会自动根据 `dimensions` 的值组合创建槽位（如 2160p+DV、2160p+HDR10、1080p+SDR），每个槽位内按评分选最优。
+`dimensions` 可以使用：
 
-**Mode B：显式定义槽位**
+- `resolution`
+- `hdr`
+- `video_codec`
+- `audio_codec`
+- `source`
+- `file_extension`（也可写 `container`）
+
+系统使用这些字段的实际值组合成槽位。例如 `dimensions: [resolution, hdr]` 会分别形成 `2160p + Dolby Vision`、`2160p + HDR10`、`1080p + SDR` 等槽位。命名模板中的 `{{versionTag}}` 会输出对应的简短标签。
+
+#### 自定义槽位
 
 ```yaml
 version:
   enabled: true
-  unmatched: skip              # 不匹配任何槽位的文件：skip(跳过) / best(选最佳)
+  unmatched: skip
   slots:
     - name: 4K DV
       match:
@@ -505,7 +860,12 @@ version:
         hdr: [SDR]
 ```
 
-精确控制每个版本槽位的匹配条件。
+- 槽位按配置顺序匹配，命中第一个后停止。
+- 同一槽位的多个字段是 AND；同一字段数组中的多个值是 OR。
+- 值匹配不区分大小写，并支持与普通 `priority` 相同的前缀匹配。
+- `unmatched: skip`：不符合任何槽位的资源直接跳过。这也是未填写 `unmatched` 时的行为。
+- `unmatched: best`：不符合自定义槽位的资源归入同一个未匹配组，并在组内保留评分最好的资源。
+- 同时填写 `slots` 和 `dimensions` 时，使用 `slots`。
 
 ---
 

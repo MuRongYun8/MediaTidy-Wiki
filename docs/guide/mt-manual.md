@@ -299,19 +299,20 @@ naming:
 <ul>
 <li><strong>推荐规则</strong>：<code>殊途-杜比优先</code>（建议从 GitHub 复制到本地固定，避免远程更新影响评分结果）。</li>
 <li><strong>自定义规则</strong>：可将评分语法说明交给 AI 学习，生成符合需求的规则。</li>
+<li><strong>音轨和字幕轨</strong>：可以限定语言、编码、声道、字幕来源和轨道数量，完整写法见<a href="/features/rules#质量评分规则">质量评分规则</a>。</li>
 </ul>
+
+<p>需要按实际媒体信息评分时，请在整理方案中开启源文件和目标文件的元数据提取。元数据提取开关不写在评分 YAML 中。</p>
 
 
 ```yaml
  - name: 殊途-杜比优先
     id: quality-shutu-dolby
-    source_extract_metadata: true
-    dest_extract_metadata: true
     scoring:
       resolution:
         enabled: true
         weight: 30
-        priority: [2160p, 1080p, 108i, 720p, 480p]
+        priority: [2160p, 1080p, 1080i, 720p, 480p]
 
       source:
         enabled: true
@@ -361,6 +362,10 @@ naming:
         enabled: true
         weight: 20
 
+      video_bitrate:
+        enabled: false
+        weight: 0
+
     exclude:
       resolutions: [360p]
       codecs: [Xvid, DivX]
@@ -368,7 +373,7 @@ naming:
 
 ```
 
-<h4>多版本洗版方案（仅做说明，自行研究）</h4>
+<h4>多版本洗版</h4>
 
 
 
@@ -394,7 +399,8 @@ naming:
 
 
 
-<table><thead><tr><th align="left">方案</th><th align="left">实现方式</th><th align="left">说明</th></tr></thead><tbody><tr><td align="left">方案一：维度自动分槽</td><td align="left">按分辨率 + HDR 自动保留多版本</td><td align="left">GitHub 模板：「多版本均衡」</td></tr><tr><td align="left">方案二：显式槽位</td><td align="left">精选 4K DV + 4K HDR + 1080p 三版本</td><td align="left">GitHub 模板：「多版本精选」</td></tr><tr><td align="left">方案三：分类目录隔离</td><td align="left">不同版本分入不同目录（如 <code>Season 1 DV</code> / <code>Season 1 HDR</code>）</td><td align="left">先分类，再在同类内洗版</td></tr></tbody></table>
+<table><thead><tr><th align="left">用法</th><th align="left">配置</th><th align="left">适用场景</th></tr></thead><tbody><tr><td align="left">按字段自动分槽</td><td align="left"><code>dimensions: [resolution, hdr]</code></td><td align="left">按实际分辨率和 HDR 组合分别保留</td></tr><tr><td align="left">自定义槽位</td><td align="left"><code>slots</code> 中填写每个槽位的 <code>match</code></td><td align="left">只保留指定的 4K DV、4K HDR、1080p SDR 等组合</td></tr><tr><td align="left">分类目录隔离</td><td align="left">不同版本使用不同分类目录</td><td align="left">先分类，再在同类目录内洗版</td></tr></tbody></table>
+<p>字段列表、<code>unmatched</code> 处理方式和完整 YAML 示例见<a href="/features/rules#多版本功能">多版本功能</a>。</p>
 <h3>4.4 分类规则</h3>
 <p>分类规则是迁移用户的重中之重，需要<strong>对齐目录</strong>和<strong>对齐分类</strong>。</p>
 <h4>对齐目录</h4>
