@@ -551,23 +551,44 @@ priority:
 | `commentary` | boolean | 是否为评论字幕 | `false` |
 | `hearing_impaired` | boolean | 是否为听障字幕 | `false` |
 
-### 语言代码与中文识别
+### 语言代码识别
 
 | 规则值 | 含义 | 常见别名/来源 |
 |--------|------|---------------|
 | `zh` | 泛中文，匹配任意 `zh-*` | `chi`、`zho`、`cmn`、`chinese`、`中文` |
-| `zh-CN` | 明确的简体中文 | `chs`、`zh-Hans`、`简体中文`、`简中` |
-| `zh-TW` | 明确的繁体中文 | `cht`、`zh-Hant`、`繁体中文`、`繁中` |
-| `zh-HK` | 香港繁体中文 | `zh-HK`、`zh-MO` |
-| `yue` | 粤语 | `cantonese`、`粤语`、`粵語` |
-| `en` | 英语 | `eng`、`english` |
+| `zh-CN` | 简体中文 | `chs`、`zh-CHS`、`zh-Hans`、`zh-SG`、`Simplified`、简体中文、简中、简英 |
+| `zh-TW` | 繁体中文 | `cht`、`zh-CHT`、`zh-Hant`、`zh-TW`、`Traditional`、繁体中文、繁中、繁英、Taiwan |
+| `zh-HK` | 香港/澳门繁体中文 | `zh-HK`、`zh-MO`、`zh-Hant-HK`、Hong Kong、香港、澳门 |
+| `yue` | 粤语 | `zh-yue`、`cantonese`、粤语、粵語、广东话、廣東話 |
+| `en` | 英语 | `eng`、`english`、`en-US`、`en-GB` |
+| `ja` | 日语 | `jpn`、`japanese`、日本語、日文 |
+| `ko` | 韩语 | `kor`、`korean`、한국어、韩文、韓文 |
+| `fr` / `de` / `es` / `pt` | 法语 / 德语 / 西班牙语 / 葡萄牙语 | `fra/fre`、`deu/ger`、`spa`、`por` 及其本地语言名称 |
+| `ru` / `it` / `ar` | 俄语 / 意大利语 / 阿拉伯语 | `rus`、`ita`、`ara` 及其本地语言名称 |
+| 其他二字代码 | 其他常见语言 | 同时兼容常见 ISO 639-2/3 三字码和 BCP-47 地区标签 |
 | `und` | 无法识别语言 | language 标签和标题/文件名均无可靠标记 |
 
 ::: warning “中文”与“简体中文”不同
-`chi`、`zho`、`cmn` 只能证明是泛中文，不能证明是简体。只接受简体时使用 `languages: [zh-CN]`；接受任意中文字幕时建议使用 `[zh, zh-CN, zh-TW, zh-HK]`。
+`chi`、`zho`、`cmn` 本身只能证明是泛中文。如果轨道标题还包含 `Simplified`、`简体` 或 `简中`，会识别为 `zh-CN`；包含 `Traditional`、`繁体` 或 `繁中`，会识别为 `zh-TW`。标题没有这些明确标记时仍为 `zh`。
 :::
 
-如果 ffprobe 的 `language` 标签为空，系统会继续检查轨道标题中的“简中、繁中、粤语、English”等可靠文字。仍无法识别时使用 `und`。
+当语言标签是泛中文或为空时，系统会继续检查轨道标题。中文优先识别文字体系、地区和粤语；其他语言识别常见英文名称、本地语言名称以及二字/三字语言码。明确的语言标签不会被冲突标题覆盖；仍无法识别时使用 `und`。
+
+常见结果：
+
+| FFprobe language | 轨道标题 | 识别结果 |
+|------------------|----------|----------|
+| `chi` | `Simplified, Singapore` | `zh-CN` |
+| `chi` | `Traditional, Hong Kong` | `zh-HK` |
+| `chi` | `Traditional, Taiwan` | `zh-TW` |
+| `chi` | `简体中文（国语）` | `zh-CN` |
+| `chi` | `繁體中文（國語）` | `zh-TW` |
+| `chi` | 无明确细分 | `zh` |
+| `eng` | 任意标题 | `en` |
+| 空 | `日本語` | `ja` |
+| 空 | `Português (Brasil)` | `pt` |
+
+规则中建议使用归一化后的值，例如 `languages: [zh-CN, zh-TW, en, ja, ko]`。除中文文字体系和地区外，普通 BCP-47 地区标签按基础语言比较，例如 `en-US`、`en-GB` 和 `eng` 都能匹配 `en`。
 
 ### 外挂字幕如何关联
 
