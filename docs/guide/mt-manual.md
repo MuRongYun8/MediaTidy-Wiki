@@ -300,9 +300,11 @@ naming:
 <li><strong>推荐规则</strong>：<code>殊途-杜比优先</code>（建议从 GitHub 复制到本地固定，避免远程更新影响评分结果）。</li>
 <li><strong>自定义规则</strong>：可将评分语法说明交给 AI 学习，生成符合需求的规则。</li>
 <li><strong>音轨和字幕轨</strong>：可以限定语言、编码、声道、字幕来源和轨道数量，完整写法见<a href="/features/rules#质量评分规则">质量评分规则</a>。</li>
+<li><strong>未知值策略</strong>：每个维度可设置 <code>unknown_policy</code>。希望双方都有值才比较时使用 <code>ignore</code>；希望未知侧记 0、已知侧正常评分时使用 <code>zero</code>。</li>
 </ul>
 
 <p>需要按实际媒体信息评分时，请在整理方案中开启源文件和目标文件的元数据提取。元数据提取开关不写在评分 YAML 中。</p>
+<p>旧规则没有 <code>unknown_policy</code> 时默认使用 <code>ignore</code>，无需批量修改。下面示例只把分辨率设为 <code>zero</code>，其他未配置维度继续沿用默认行为。</p>
 
 
 ```yaml
@@ -311,6 +313,7 @@ naming:
     scoring:
       resolution:
         enabled: true
+        unknown_policy: zero
         weight: 30
         priority: [2160p, 1080p, 1080i, 720p, 480p]
 
