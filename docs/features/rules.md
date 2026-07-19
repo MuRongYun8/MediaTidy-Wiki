@@ -403,6 +403,10 @@ resolution:
 - 字符串匹配不区分大小写，并支持以空格或 `+` 分隔的前缀匹配。例如 `Dolby Vision` 可以匹配 `Dolby Vision P8`，`Remux` 可以匹配 `Remux+BluRay`。
 - YAML 字段名是 `unknown_policy`，接口 JSON 中对应 `unknownPolicy`。旧规则不需要补写该字段，保存和序列化时也不会被强制扩写。
 
+![评分规则 YAML 编辑示例](/screenshots/quality-rule-editor.png)
+
+*进入“规则引擎 → 整理规则 → 评分规则”编辑本地 YAML。示例中分辨率和字幕使用 `zero`，视频编码保留默认的双方忽略方式。*
+
 ### 评分公式
 
 ```text

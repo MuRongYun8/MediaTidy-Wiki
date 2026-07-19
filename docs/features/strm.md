@@ -27,6 +27,10 @@ STRM 生成功能将云端视频文件转换为 `.strm` 文件，供 Emby / Jell
 | **输出目录** | `outputDir` | STRM 文件的本地输出路径（如 `/app/strm`） |
 | **所属账号** | `accountId` | 关联的 115 账号 ID |
 
+![STRM 方案基本配置示例](/screenshots/strm-profile-settings.png)
+
+*新建方案时先确认数据源、STRM 格式、源目录和输出目录。输出目录是 MediaTidy 容器内可写的本地路径，不是云盘目录。*
+
 ### 数据源
 
 | 配置项 | 字段 | 说明 |
