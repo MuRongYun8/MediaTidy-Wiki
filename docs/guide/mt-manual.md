@@ -301,6 +301,7 @@ naming:
 <li><strong>自定义规则</strong>：可将评分语法说明交给 AI 学习，生成符合需求的规则。</li>
 <li><strong>音轨和字幕轨</strong>：可以限定语言、编码、声道、字幕来源和轨道数量，完整写法见<a href="/features/rules#质量评分规则">质量评分规则</a>。</li>
 <li><strong>未知值策略</strong>：每个维度可设置 <code>unknown_policy</code>。希望双方都有值才比较时使用 <code>ignore</code>；希望未知侧记 0、已知侧正常评分时使用 <code>zero</code>。</li>
+<li><strong>片源未知</strong>：文件名没有识别出片源时同样按 <code>source.unknown_policy</code> 处理，不要在 <code>source.priority</code> 中添加 <code>Unknown</code>；旧条目加载时会自动过滤。</li>
 </ul>
 
 <p>需要按实际媒体信息评分时，请在整理方案中开启源文件和目标文件的元数据提取。元数据提取开关不写在评分 YAML 中。</p>
@@ -320,7 +321,7 @@ naming:
       source:
         enabled: true
         weight: 3
-        priority: [Remux+UHD BluRay, Remux+BluRay, Remux+BD, UHD BluRay, BluRay, WEB-DL, WEBRip, WEB, Unknown, HDTV, DVDRip, DVD, CAM]
+        priority: [Remux+UHD BluRay, Remux+BluRay, Remux+BD, UHD BluRay, BluRay, WEB-DL, WEBRip, WEB, HDTV, DVDRip, DVD, CAM]
 
       video_codec:
         enabled: true

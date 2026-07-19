@@ -460,8 +460,8 @@ resolution:
 
 音轨使用完全相同的判断方式。完整清单为空表示“确定没有”，没有采集到清单则表示“无法判断”。
 
-::: warning 最容易混淆的地方
-`source` 规则里的 `Unknown` 是一个可以写进 `priority` 的普通评分档位，不是这里说的“无法判断”。老文件名没有片源标签时会匹配 `Unknown`，并继续参与 `source` 评分。
+::: tip `source` 也使用未知值策略
+文件名没有识别出片源时，`source` 现在属于“无法判断”：`ignore` 会让双方跳过片源维度，`zero` 会让未知侧记 0 分、已知侧正常评分。不要再把 `Unknown` 写进 `source.priority`；旧规则中的该条目会在加载时自动过滤，不会改写原始 YAML。
 :::
 
 其他评分项按下面的实际场景处理：
@@ -470,6 +470,7 @@ resolution:
 |----------|--------------|
 | 文件名有分辨率，或 FF 取得了分辨率 | 可以确定分辨率，正常评分 |
 | 文件名没有分辨率，而且没有成功取得完整 FF | 无法判断分辨率，按 `resolution.unknown_policy` 处理 |
+| 文件名没有识别出片源 | 无法判断片源，按 `source.unknown_policy` 处理 |
 | 完整 FF 确认没有有效视频 | 可以确定没有有效视频，分辨率按 0 分参与 |
 | 文件名和 FF 都没有明确 HDR 标签 | 按产品规则视为 `SDR`，正常参与 HDR 评分 |
 | 完整 FF 确认没有有效视频 | HDR 也按 0 分参与 |
@@ -510,7 +511,7 @@ resolution:
 | YAML 键 | 常用 `priority` 值 | 使用说明 |
 |----------|-------------------|----------|
 | `resolution` | `[4320p, 2160p, 1080p, 720p]` | ffprobe 有结果时使用实际视频分辨率，否则使用文件名识别值 |
-| `source` | `[Remux+UHD BluRay, Remux+BluRay, UHD BluRay, BluRay, WEB-DL, Unknown]` | 从文件名识别；无法识别时按 `Unknown` 匹配 |
+| `source` | `[Remux+UHD BluRay, Remux+BluRay, UHD BluRay, BluRay, WEB-DL, HDTV]` | 从文件名识别；无法识别时按 `source.unknown_policy` 处理 |
 | `video_codec` | `[AV1, H.265, H.264, VP9]` | ffprobe 有结果时使用实际视频编码，否则使用文件名识别值 |
 | `audio_codec` | `[DTS:X, TrueHD Dolby Atmos, DTS-HD MA, Dolby TrueHD, AAC]` | 字符串按音频摘要评分；需要限定语言、声道或标记时使用下方轨道条件 |
 | `hdr` | `[Dolby Vision P7, Dolby Vision P8, Dolby Vision, HDR10+, HDR10, HLG, HDR, SDR]` | 一个文件识别到多个 HDR 值时，采用列表中得分最高的一项；未识别到 HDR 时按 `SDR` 匹配 |
@@ -528,7 +529,7 @@ resolution:
 | Remux + UHD BluRay | `Remux+UHD BluRay` |
 | Remux + BluRay | `Remux+BluRay` |
 | 只有 Remux | `Remux+BD` |
-| 无法识别片源 | `Unknown` |
+| 无法识别片源 | 未知，按 `source.unknown_policy` 处理 |
 
 ### 文件大小和码率
 
