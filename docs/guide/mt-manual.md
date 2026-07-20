@@ -302,6 +302,7 @@ naming:
 <li><strong>音轨和字幕轨</strong>：可以限定语言、编码、声道、字幕来源和轨道数量，完整写法见<a href="/features/rules#质量评分规则">质量评分规则</a>。</li>
 <li><strong>未知值策略</strong>：每个维度可设置 <code>unknown_policy</code>。希望双方都有值才比较时使用 <code>ignore</code>；希望未知侧记 0、已知侧正常评分时使用 <code>zero</code>。</li>
 <li><strong>片源未知</strong>：文件名没有识别出片源时同样按 <code>source.unknown_policy</code> 处理，不要在 <code>source.priority</code> 中添加 <code>Unknown</code>；旧条目加载时会自动过滤。</li>
+<li><strong>外挂字幕</strong>：只处理与当前目录视频可靠且唯一关联的字幕；成功关联后会参与来源去重、首次资格判断和目标洗版评分，并随视频重命名转移。没有同目录视频、身份冲突或候选不唯一的字幕会受保护且不处理，完整规则见<a href="/features/rules#外挂字幕如何关联">外挂字幕如何关联</a>。</li>
 </ul>
 
 <p>需要按实际媒体信息评分时，请在整理方案中开启源文件和目标文件的元数据提取。元数据提取开关不写在评分 YAML 中。</p>
