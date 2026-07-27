@@ -11,6 +11,9 @@ description: MediaTidy 从部署、CD2、115、Emby、应用缓存到自动整�
 ::: tip 推荐阅读
 这是一份完整入门手册，适合第一次搭建或从神医 / Emby / STRM 体系迁移到 MediaTidy 的用户。分享洗版请查看[独立教程](/guide/share-manual)。
 :::
+
+> 本教程依据 MediaTidy `V0.0.21.M190` 整理。后续版本的界面和选项可能有所调整。
+
 <h2>一、项目简介</h2>
 <p>MediaTidy（以下简称 MT）是基于 CloudDrive2（CD2）面向 115 网盘的媒体文件整理工具。其主要特色功能如下：</p>
 
@@ -68,7 +71,7 @@ description: MediaTidy 从部署、CD2、115、Emby、应用缓存到自动整�
 
 
 
-<table><thead><tr><th>类型</th><th>路径</th></tr></thead><tbody><tr><td>115 网盘</td><td><code>/云盘影视</code>、<code>/待整理</code>、<code>/未识别</code></td></tr><tr><td>本地 STRM 路径</td><td><code>/vol1/1000/strm</code></td></tr><tr><td>本地 Docker 路径</td><td><code>/vol1/1000/docker/mediatidy</code></td></tr></tbody></table>
+<table><thead><tr><th>类型</th><th>路径</th></tr></thead><tbody><tr><td>115 网盘</td><td><code>/云盘影视</code>、<code>/预处理/待整理</code>、<code>/预处理/未识别</code>、<code>/预处理/中转影视</code></td></tr><tr><td>本地 STRM 路径</td><td><code>/vol1/1000/strm</code></td></tr><tr><td>本地 Docker 路径</td><td><code>/vol1/1000/docker/mediatidy</code></td></tr></tbody></table>
 <h3>2.3 CD2的搭建（以飞牛 NAS 为例）</h3>
 
 
@@ -120,9 +123,9 @@ services:
 
 
 
-<table><thead><tr><th>项目</th><th>容器内CD2挂载地址</th><th>容器内媒体库地址</th><th>基准</th></tr></thead><tbody><tr><td>emby</td><td>/CloudNAS</td><td>/strm/云盘影视</td><td>媒体库地址以emby为准</td></tr><tr><td>mediatidy</td><td>/CloudNAS</td><td>/strm/云盘影视</td><td>CD2挂载路径以mt为准</td></tr></tbody></table>
+<table><thead><tr><th>项目</th><th>容器内 CD2 挂载地址</th><th>容器内 STRM 媒体库地址</th></tr></thead><tbody><tr><td>Emby</td><td><code>/CloudNAS</code></td><td><code>/strm/云盘影视</code></td></tr><tr><td>MediaTidy</td><td><code>/CloudNAS</code></td><td><code>/strm/云盘影视</code></td></tr><tr><td>对齐基准</td><td>Emby 映射与 MT 保持一致</td><td>MT 映射与 Emby 保持一致</td></tr></tbody></table>
 <blockquote>
-<p><strong>⚠️ 重要提醒</strong>：如若有差异，比如emby的容器内媒体路径为/帅哥一大家/大帅爸爸/小帅儿子/云盘影视；mt 的容器内媒体库路径为/strm/云盘影视；则需在mt设置项“Emby配置-emby实例-路径映射”里做好映射/strm：/帅哥一大家/大帅爸爸/小帅儿子</p>
+<p><strong>⚠️ 重要提醒</strong>：如果两端路径不同，须在 MT 的 Emby 配置中添加路径映射，让 MT 能识别 Emby 的容器内地址。例如 MT 使用 <code>/app/strm/云盘影视</code>、Emby 使用 <code>/strm/云盘影视</code> 时，添加 <code>/app/strm:/strm</code>。</p>
 </blockquote>
 <h2>三、项目搭建与基础设置</h2>
 <h3>3.1 Docker Compose 部署（推荐）</h3>
@@ -157,22 +160,35 @@ services:
 <h3>3.3 网盘配置</h3>
 <h4>3.3.1 CD2 配置</h4>
 <p>进入后台 → 网盘配置 → 添加 CD2 配置。链接方式支持账号密码或 Token 两种方式。<br />
-挂载路径为 /CloudNAS/CloudDrive</p>
+挂载路径示例为 <code>/CloudNAS/CloudDrive</code>。自 M169 起，文件引擎推荐选择「CloudDrive2」。</p>
 <figure class="image-figure"><img src="/guide/mt-manual/eaca3d11933ca922.png" alt="图片" /></figure>
 <h4>3.3.2 115 账号登录</h4>
-<p>扫码登录即可。永V用户或不玩分享的用户，推荐使用支付宝/微信小程序接口登录。</p>
+<p>需要拉取分享 STRM 时，推荐使用 115 手机 App 的 Cookie。一个 Cookie 可供多个项目共同使用，不要求单项目独占。</p>
+<ol>
+<li>在 Android 手机安装 Reqable（原教程使用 2.33.12）。</li>
+<li>启动调试后打开 115 App，并播放一段视频。</li>
+<li>关闭调试，搜索 <code>vido</code>，在请求的「原始」内容中获取 Cookie。</li>
+</ol>
+<p>不使用分享功能时，可按实际账号类型选择扫码或小程序接口登录。</p>
 <h4>3.3.3 路径映射</h4>
 <p>按实际挂载路径和115账号做好映射关系，标签为MT项目文件管理器显示的自定义昵称，可自行修改。</p>
 <figure class="image-figure"><img src="/guide/mt-manual/da106fceebe23b91.png" alt="图片" /></figure>
 <h4>3.3.4 API 延时（CD2 QPS 策略）</h4>
 <p>推荐配置 CD2 的 QPS 策略以优化体验。115 直连用户无需调整此设置。</p>
 <figure class="image-figure"><img src="/guide/mt-manual/953deb26d73556c0.png" alt="图片" /></figure>
+<p>115 直连的延时配置主要影响分享 STRM 拉取速度，其中「列表 / 搜索」最关键。</p>
 <h4>3.3.5 云盘目录操作</h4>
-<p>根据实际需求配置云盘目录操作行为。</p>
+<p>根据 CD2 的 QPS 限制配置云盘目录操作行为，避免请求过快触发风控。</p>
 <figure class="image-figure"><img src="/guide/mt-manual/e2dea5a8adff6080.png" alt="图片" /></figure>
+<h4>3.3.6 通用目录挂载</h4>
+<ol>
+<li>在 CD2 后台把本地 <code>/strm</code> 目录挂载到 CD2；Docker 部署时需先把宿主机 STRM 目录映射为 CD2 容器内的 <code>/strm</code>。</li>
+<li>在 MT 的通用挂载配置中连接 CD2，再把新增的 <code>/strm</code> 挂载到 MT 文件管理器。</li>
+</ol>
+<p>本地 STRM 需要 FFprobe 时必须完成此挂载，且 STRM 内容必须包含对应媒体文件的 SHA1。</p>
 <h3>3.4 Emby 管理</h3>
 <ol>
-<li>在后台 Emby管理 中添加 Emby 服务器，并生成API token填入</li>
+<li>在后台 Emby 管理中添加 Emby 服务器，并填入生成的 API Token。为给 Emby 留出充足的刮削时间，入库延迟推荐设置为 <code>180</code> 秒。</li>
 </ol>
 <figure class="image-figure"><img src="/guide/mt-manual/231f9f65e70c6a24.png" alt="图片" /></figure>
 <ol start="2">
@@ -211,7 +227,8 @@ http://&lt;本机IP&gt;:2019/api/webhook/emby</li>
 <p>填写你自己的 TMDB API Key。如果没有请前往 TMDB 官网 申请，使用公共 Key 会影响整理效率。</p>
 <h4>3.5.3 媒体后缀</h4>
 <ul>
-<li>不玩分享的用户：保持默认即可</li>
+<li>使用分享洗版：添加 <code>.strm</code> 后保存。</li>
+<li>不使用分享功能：保持默认即可。</li>
 </ul>
 <h4>3.5.4 出站代理</h4>
 <p>按需填写，推荐使用 socks5:// 地址。（先保存再测试）</p>
@@ -220,7 +237,7 @@ http://&lt;本机IP&gt;:2019/api/webhook/emby</li>
 <h4>3.5.6 系统通知</h4>
 <p>推荐使用 双 TG 通知：</p>
 <ul>
-<li>一个用作整理通知，勾选相关管理通知</li>
+<li>一个用作整理通知，勾选整理相关通知</li>
 <li>一个用作入库emby通知，不勾选任何选项，该通知在emby配置里勾选。</li>
 </ul>
 <figure class="image-figure"><img src="/guide/mt-manual/b8d4857be64bee13.png" alt="图片" /></figure>

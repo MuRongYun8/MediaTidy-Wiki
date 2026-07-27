@@ -7,6 +7,8 @@ description: MediaTidy 使用本地分享 STRM 进行网盘媒体洗版、查重
 
 分享洗版用于将 115 网盘文件与本地分享 STRM 做质量比对，保留每部媒体的唯一最优版本，同时降低本地存储压力。
 
+> 本教程依据 MediaTidy `V0.0.21.M190` 整理。
+
 ::: tip 使用前提
 请先完成 [MT 入门使用手册](/guide/mt-manual) 中的部署、CD2、115、路径映射、规则和 Emby 配置。本页只介绍分享洗版专用流程。
 :::
@@ -25,9 +27,94 @@ description: MediaTidy 使用本地分享 STRM 进行网盘媒体洗版、查重
 ### 关键规则
 
 - 步骤 1 必须使用云盘模式，否则整理 FF 无法生效。
-- 步骤 2、步骤 3 和查重任务使用本地目录模式，避免重复读取网盘文件。
+- 步骤 2 和步骤 3 也使用云盘模式；查重任务使用本地目录模式。
 - 如果需要筛选视频后缀或处理元数据，只在步骤 1 设置即可。
+- 季集强匹配只在步骤 1 按需启用，步骤 2、步骤 3 关闭，确保手动识别后的任务链能继续执行。
 - 分享 STRM 的命名和评分规则使用 `k自用-源信息命名` 与 `本地strm`。
+- 本地 STRM 开启 FFprobe 前，须通过 CD2 和 MT 的通用挂载接入本地目录，并确保 STRM 内容包含对应文件的 SHA1。
+
+### 分享洗版专用规则
+
+步骤 2、步骤 3 和查重任务使用文件名提取参数，避免对已处理文件再次套用 FFprobe 命名：
+
+```yaml
+naming:
+  - name: k自用-源信息命名
+    id: k-filename
+    movie:
+      folder: "{{title}} ({{year}}) {tmdb-{{tmdbid}}}"
+      file: "{{title}}.{{year}}.{{videoFormat}}.{{source}}.{{edition}}.{{dynamicRange}}.{{colorDepth}}.{{frameRate}}.{{bitrate}}.{{videoCodec}}.{{audioCodec}}.{{fileExt}}"
+    tv:
+      folder: "{{title}} ({{year}}) {tmdb-{{tmdbid}}}/Season {{season}}"
+      file: "{{title}}.{{year}}.{{seasonEpisode}}.{{videoFormat}}.{{source}}.{{edition}}.{{dynamicRange}}.{{colorDepth}}.{{frameRate}}.{{bitrate}}.{{videoCodec}}.{{audioCodec}}.{{fileExt}}"
+```
+
+以下是 V1.5 教程推荐的 `本地strm` 评分规则。`unknown_policy: zero` 表示一侧信息未知时按 0 分参与比较；字幕维度会优先简体中文 PGS、ASS/SSA 和 SRT/VTT：
+
+```yaml
+quality:
+  - name: 本地strm
+    id: quality-strm
+    scoring:
+      resolution:
+        enabled: true
+        unknown_policy: zero
+        weight: 20
+        priority: [2160p, 1080p, 1080i, 720p, 480p]
+      video_codec:
+        enabled: true
+        unknown_policy: zero
+        weight: 10
+        priority: [H.265, AV1, H.264, VP9]
+      hdr:
+        enabled: true
+        unknown_policy: zero
+        weight: 40
+        priority: [Dolby Vision P7, Dolby Vision P5, Dolby Vision P8, Dolby Vision, HDR10+, HDR10, HLG, HDR, SDR]
+      subtitle:
+        enabled: true
+        weight: 10
+        priority:
+          - languages: [zh-CN]
+            formats: [PGS]
+            source: any
+          - languages: [zh-CN]
+            formats: [ASS, SSA]
+            source: any
+          - languages: [zh-CN]
+            formats: [SRT, VTT]
+            source: any
+          - languages: [zh-TW, zh-HK, yue]
+            formats: [PGS]
+            source: any
+          - languages: [zh-TW, zh-HK, yue]
+            formats: [ASS, SSA]
+            source: any
+          - languages: [zh-TW, zh-HK, yue]
+            formats: [SRT, VTT]
+            source: any
+          - languages: [zh]
+            formats: [PGS]
+            source: any
+          - languages: [zh]
+            formats: [ASS, SSA]
+            source: any
+          - languages: [zh]
+            formats: [SRT, VTT]
+            source: any
+          - languages: [zh, yue]
+            source: any
+          - languages: [und]
+            source: any
+      bitrate:
+        enabled: true
+        unknown_policy: zero
+        weight: 20
+    exclude:
+      resolutions: [360p]
+      codecs: [Xvid, DivX]
+      hdr_types: []
+```
 
 ## 二、整理任务配置
 
@@ -51,42 +138,48 @@ description: MediaTidy 使用本地分享 STRM 进行网盘媒体洗版、查重
 | 并发线程 | 1 线程 |
 | 命名规则 | `k自用-探测混合命名` |
 | 文件重命名 | 开启 |
-| 季集强匹配 | 开启 |
+| 季集强匹配 | 按需，默认关闭 |
 | 洗版设置 | 开启 |
-| 评分规则 | `ff单边重命名` |
-| FFprobe 提取 | 源目录新文件开启，其余复用关闭 |
+| 评分规则 | `本地strm` |
+| 按分类目录选择评分规则 | 关闭 |
+| FFprobe 提取 | 源文件探测和目标文件探测开启，其余复用关闭 |
 | 视频后缀 | 按需控制元数据的参数 |
 | 整理后清除 | 开启 |
 | 触发方式 | 定期轮询（本地目录），30 秒 |
+
+![步骤 1：预处理到中转影视配置](/guide/share-manual/step-1.png)
 
 ### 2.3 步骤 2：中转影视 ↔ 分享 STRM
 
 | 配置项 | 设置 |
 | --- | --- |
-| 存储类型 | 本地目录 |
+| 存储类型 | **云盘模式（重要）** |
 | 移动方式 | **跳过（重要）** |
-| 源目录 | CD2 挂载 115 网盘的 `/预处理/中转影视` |
-| 目标目录 | MT 映射的本地目录 `/strm/云盘影视` |
+| 源目录 | `/预处理/中转影视` |
+| 目标目录 | `/strm/云盘影视` |
 | 并发线程 | 1 线程 |
 | 命名规则 | `k自用-源信息命名` |
 | 文件重命名 | 关闭 |
 | 季集强匹配 | 关闭 |
 | 洗版设置 | 开启 |
 | 评分规则 | `本地strm` |
-| FFprobe 提取 | 全部关闭 |
+| FFprobe 提取 | 源文件探测和目标文件探测开启，其余复用关闭 |
+| 读取 STRM 内容 | 开启 |
 | 视频后缀 | 自定义添加 `.strm`（重要） |
 | 整理后清除 | 开启 |
 | Emby 媒体库刷新 | 关闭 |
 | 触发方式 | 手动执行 |
 
+![步骤 2：中转影视与分享 STRM 洗版配置](/guide/share-manual/step-2.png)
+
 ### 2.4 步骤 3：中转影视 ↔ 云盘影视
 
 | 配置项 | 设置 |
 | --- | --- |
-| 存储类型 | 本地目录 |
+| 存储类型 | **云盘模式（重要）** |
 | 移动方式 | 移动 |
-| 源目录 | CD2 挂载 115 网盘的 `/预处理/中转影视` |
-| 目标目录 | CD2 挂载 115 网盘的 `/云盘影视` |
+| 源目录 | `/预处理/中转影视` |
+| 目标目录 | `/云盘影视` |
 | 并发线程 | 1 线程 |
 | 命名规则 | `k自用-源信息命名` |
 | 文件重命名 | 关闭 |
@@ -96,6 +189,8 @@ description: MediaTidy 使用本地分享 STRM 进行网盘媒体洗版、查重
 | FFprobe 提取 | 全部关闭 |
 | 整理后清除 | 开启（重要） |
 | 触发方式 | 手动执行 |
+
+![步骤 3：中转影视到云盘影视配置](/guide/share-manual/step-3.png)
 
 ### 2.5 查重任务
 
@@ -117,6 +212,8 @@ description: MediaTidy 使用本地分享 STRM 进行网盘媒体洗版、查重
 | 整理后清除 | 开启 |
 | Emby 媒体库刷新 | 关闭 |
 | 触发方式 | 手动执行 |
+
+![本地 STRM 查重任务配置](/guide/share-manual/deduplicate.png)
 
 ### 2.6 任务组设置
 
