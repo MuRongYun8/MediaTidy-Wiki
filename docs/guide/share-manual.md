@@ -7,7 +7,7 @@ description: MediaTidy 使用本地分享 STRM 进行网盘媒体洗版、查重
 
 分享洗版用于将 115 网盘文件与本地分享 STRM 做质量比对，保留每部媒体的唯一最优版本，同时降低本地存储压力。
 
-> 本教程依据 MediaTidy `V0.0.21.M190` 整理。
+> 本教程依据《MediaTidy 分享洗版教程 V1.5.2》整理，教程编写时的 MT 版本为 `V0.0.21.M190`。
 
 ::: tip 使用前提
 请先完成 [MT 入门使用手册](/guide/mt-manual) 中的部署、CD2、115、路径映射、规则和 Emby 配置。本页只介绍分享洗版专用流程。
@@ -26,19 +26,33 @@ description: MediaTidy 使用本地分享 STRM 进行网盘媒体洗版、查重
 
 ### 关键规则
 
+- 实时监控依赖 CD2 gRPC，只有通过 CD2 执行的目录操作才能被监控。通过其他方式写入网盘的文件需使用轮询监控，建议间隔 20～30 秒。
 - 步骤 1 必须使用云盘模式，否则整理 FF 无法生效。
 - 步骤 2 和步骤 3 也使用云盘模式；查重任务使用本地目录模式。
 - 如果需要筛选视频后缀或处理元数据，只在步骤 1 设置即可。
 - 季集强匹配只在步骤 1 按需启用，步骤 2、步骤 3 关闭，确保手动识别后的任务链能继续执行。
-- 分享 STRM 的命名和评分规则使用 `k自用-源信息命名` 与 `本地strm`。
+- 步骤 1、步骤 2、步骤 3 使用 `k自用-探测混合命名`，查重任务使用 `k自用-源信息命名`；所有任务使用 `本地strm` 评分规则。
 - 本地 STRM 开启 FFprobe 前，须通过 CD2 和 MT 的通用挂载接入本地目录，并确保 STRM 内容包含对应文件的 SHA1。
 
-### 分享洗版专用规则
+### 命名与评分规则
 
-步骤 2、步骤 3 和查重任务使用文件名提取参数，避免对已处理文件再次套用 FFprobe 命名：
+命名参数分为两类：`probe*` 参数来自 FFprobe 探测，`videoFormat`、`videoCodec` 等参数从文件名提取。分享洗版的三个云盘整理任务需要探测媒体信息，查重任务则直接解析已有 STRM 文件名。
+
+::: warning 保持目录命名一致
+示例使用 `{tmdb-xxx}` 目录格式。如果现有媒体库使用 `[tmdbid=xxx]` 或其他格式，请沿用原格式；变更 TMDB 标记样式会影响前后目录对齐。
+:::
 
 ```yaml
 naming:
+  - name: k自用-探测混合命名
+    id: k-mixed
+    movie:
+      folder: "{{title}} ({{year}}) {tmdb-{{tmdbid}}}"
+      file: "{{title}}.{{year}}.{{probeResolution}}.{{source}}.{{edition}}.{{probeHDR}}.{{probeColorDepth}}.{{probeFrameRate}}.{{probeBitrate}}.{{probeCodec}}.{{probeAudio}}.{{fileExt}}"
+    tv:
+      folder: "{{title}} ({{year}}) {tmdb-{{tmdbid}}}/Season {{season}}"
+      file: "{{title}}.{{year}}.{{seasonEpisode}}.{{probeResolution}}.{{source}}.{{edition}}.{{probeHDR}}.{{probeColorDepth}}.{{probeFrameRate}}.{{probeBitrate}}.{{probeCodec}}.{{probeAudio}}.{{fileExt}}"
+
   - name: k自用-源信息命名
     id: k-filename
     movie:
@@ -49,7 +63,7 @@ naming:
       file: "{{title}}.{{year}}.{{seasonEpisode}}.{{videoFormat}}.{{source}}.{{edition}}.{{dynamicRange}}.{{colorDepth}}.{{frameRate}}.{{bitrate}}.{{videoCodec}}.{{audioCodec}}.{{fileExt}}"
 ```
 
-以下是 V1.5 教程推荐的 `本地strm` 评分规则。`unknown_policy: zero` 表示一侧信息未知时按 0 分参与比较；字幕维度会优先简体中文 PGS、ASS/SSA 和 SRT/VTT：
+以下是 V1.5.2 教程推荐的 `本地strm` 评分规则。`unknown_policy: zero` 表示信息未知时按 0 分参与比较；字幕按语言分组评分，码率权重为 30：
 
 ```yaml
 quality:
@@ -73,43 +87,21 @@ quality:
         priority: [Dolby Vision P7, Dolby Vision P5, Dolby Vision P8, Dolby Vision, HDR10+, HDR10, HLG, HDR, SDR]
       subtitle:
         enabled: true
-        weight: 10
+        weight: 5
         priority:
-          - languages: [zh-CN]
-            formats: [PGS]
+          - score: 10.00
+            languages: [zh-CN, zh]
             source: any
-          - languages: [zh-CN]
-            formats: [ASS, SSA]
+          - score: 8.00
+            languages: [zh-TW, zh-HK, yue]
             source: any
-          - languages: [zh-CN]
-            formats: [SRT, VTT]
-            source: any
-          - languages: [zh-TW, zh-HK, yue]
-            formats: [PGS]
-            source: any
-          - languages: [zh-TW, zh-HK, yue]
-            formats: [ASS, SSA]
-            source: any
-          - languages: [zh-TW, zh-HK, yue]
-            formats: [SRT, VTT]
-            source: any
-          - languages: [zh]
-            formats: [PGS]
-            source: any
-          - languages: [zh]
-            formats: [ASS, SSA]
-            source: any
-          - languages: [zh]
-            formats: [SRT, VTT]
-            source: any
-          - languages: [zh, yue]
-            source: any
-          - languages: [und]
+          - score: 8.00
+            languages: [und]
             source: any
       bitrate:
         enabled: true
         unknown_policy: zero
-        weight: 20
+        weight: 30
     exclude:
       resolutions: [360p]
       codecs: [Xvid, DivX]
@@ -158,7 +150,7 @@ quality:
 | 源目录 | `/预处理/中转影视` |
 | 目标目录 | `/strm/云盘影视` |
 | 并发线程 | 1 线程 |
-| 命名规则 | `k自用-源信息命名` |
+| 命名规则 | `k自用-探测混合命名` |
 | 文件重命名 | 关闭 |
 | 季集强匹配 | 关闭 |
 | 洗版设置 | 开启 |
@@ -181,12 +173,13 @@ quality:
 | 源目录 | `/预处理/中转影视` |
 | 目标目录 | `/云盘影视` |
 | 并发线程 | 1 线程 |
-| 命名规则 | `k自用-源信息命名` |
+| 命名规则 | `k自用-探测混合命名` |
 | 文件重命名 | 关闭 |
 | 季集强匹配 | 关闭 |
 | 洗版设置 | 开启 |
 | 评分规则 | `本地strm` |
-| FFprobe 提取 | 全部关闭 |
+| FFprobe 提取 | 源文件探测和目标文件探测开启，其余复用关闭 |
+| 读取 STRM 内容 | 关闭 |
 | 整理后清除 | 开启（重要） |
 | 触发方式 | 手动执行 |
 
@@ -233,6 +226,10 @@ flowchart TD
 - 跳过模式：以云盘目录为 A、本地分享 STRM 目录为 B；A 优于 B 时删除 B 中对应的 STRM 和元数据，A 劣于 B 时删除 A 中对应的文件。
 
 ## 三、STRM 配置
+
+::: warning 推荐模式
+当前版本仅推荐使用 **115 高速穿透**模式，STRM 路径仅推荐使用 **CD2 本地路径**模式。
+:::
 
 ### 3.1 字幕与元数据同步
 

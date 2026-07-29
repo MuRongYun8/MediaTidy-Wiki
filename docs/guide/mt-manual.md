@@ -318,6 +318,7 @@ naming:
 <li><strong>自定义规则</strong>：可将评分语法说明交给 AI 学习，生成符合需求的规则。</li>
 <li><strong>音轨和字幕轨</strong>：可以限定语言、编码、声道、字幕来源和轨道数量，完整写法见<a href="/features/rules#质量评分规则">质量评分规则</a>。</li>
 <li><strong>未知值策略</strong>：每个维度可设置 <code>unknown_policy</code>。希望双方都有值才比较时使用 <code>ignore</code>；希望未知侧记 0、已知侧正常评分时使用 <code>zero</code>。</li>
+<li><strong>洗版最低分差</strong>：在评分规则顶层设置 <code>min_score_diff</code>，例如填写 <code>10</code> 表示新文件总分至少领先 10 分才替换；省略时默认 0.1。完整语义见<a href="/features/rules#洗版最低分差">质量评分规则</a>。</li>
 <li><strong>片源未知</strong>：文件名没有识别出片源时同样按 <code>source.unknown_policy</code> 处理，不要在 <code>source.priority</code> 中添加 <code>Unknown</code>；旧条目加载时会自动过滤。</li>
 <li><strong>外挂字幕</strong>：只处理与当前目录视频可靠且唯一关联的字幕；成功关联后会参与来源去重、首次资格判断和目标洗版评分，并随视频重命名转移。没有同目录视频、身份冲突或候选不唯一的字幕会受保护且不处理，完整规则见<a href="/features/rules#外挂字幕如何关联">外挂字幕如何关联</a>。</li>
 </ul>
