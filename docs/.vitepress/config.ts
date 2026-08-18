@@ -86,12 +86,12 @@ export default defineConfig({
     },
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/JieWSOFT/MediaTidy-Wiki' },
+      { icon: 'github', link: 'https://github.com/MuRongYun8/MediaTidy-Wiki' },
     ],
 
     footer: {
       message: 'MediaTidy - 全自动媒体库管理工具',
-      copyright: 'Copyright © 2025 JieWSOFT',
+      copyright: 'Copyright © 2025 MuRongYun8',
     },
 
     outline: {
