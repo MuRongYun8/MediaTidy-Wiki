@@ -43,8 +43,8 @@ tv:
 |------|----------|------|--------|
 | `genre_ids` | TMDB 类型 ID | 内容类型，支持多值逗号分隔 | `"16"` (动画)、`"16,10762"` |
 | `original_language` | TMDB 原始语言 | ISO 639-1 语言代码 | `"zh"`, `"ja,ko"` |
-| `origin_country` | TMDB 制作国家（TV） | ISO 3166-1 国家代码 | `"CN,TW,HK"` |
-| `production_countries` | TMDB 制作国家（通用） | 会同时匹配 origin_country | `"US,GB"` |
+| `origin_country` | TMDB 详情顶层来源国家/地区（电影、剧集） | ISO 3166-1 国家代码 | `"CN,TW,HK"` |
+| `production_countries` | TMDB 制作国家/地区 | ISO 3166-1 国家代码 | `"US,GB"` |
 | `keywords` | TMDB 标题文本 | 标题包含关键词即匹配 | `"奥特曼,假面骑士"` |
 | `include_keywords` | TMDB 标签关键词 | 匹配 TMDB 的 keyword 标签 | `"tokusatsu,superhero"` |
 | `filename_keywords` | 原始文件名 | 文件名包含关键词即匹配 | `"REMUX,Atmos"` |
@@ -55,6 +55,8 @@ tv:
 | `file_extension` | 文件后缀名 | 小写扩展名 | `"mkv,iso"` |
 | `resolution` | 分辨率 | 从文件名或 ffprobe 获取 | `"2160p,1080p"` |
 | `hdr` / `dynamic_range` | HDR 类型 | 从文件名或 ffprobe 获取 | `"Dolby Vision,HDR10"` |
+
+`origin_country` 使用 TMDB 电影或剧集详情顶层的来源国家/地区字段，电影和剧集均可使用；部分条目可能为空，且不会用 `production_countries` 代替。需要按实际制作国家/地区分类时使用 `production_countries`。两者是独立字段，不要因为制作国家命中就假设来源国家/地区也命中。
 
 ### 条件语法详解
 
@@ -90,7 +92,7 @@ genre_ids: "+16,+10762"   # 必须同时有动画(16) AND 儿童(10762)
 ```yaml
 电视剧/香港剧:
   ?include_keywords: "TVB,HK"   # 可选：TMDB 标签含 TVB 或 HK
-  ?origin_country: "HK"          # 可选：制作国家为香港
+  ?origin_country: "HK"          # 可选：来源国家/地区为香港
   # 两个可选条件满足任一即可
 ```
 
@@ -99,7 +101,7 @@ genre_ids: "+16,+10762"   # 必须同时有动画(16) AND 儿童(10762)
 字段名前加 `-` 或 `!` 表示整个条件取反：
 
 ```yaml
--origin_country: "CN"   # 制作国家不是中国
+-origin_country: "CN"   # 来源国家/地区不是中国
 ```
 
 #### 空条件 = 保底规则
@@ -290,7 +292,7 @@ naming:
 |------|------|------|
 | `{{probeResolution}}` | 探测分辨率 | 2160p, 1080p |
 | `{{probeCodec}}` | 探测视频编码 | H.265, H.264 |
-| `{{probeAudio}}` | 探测音频编码 | Dolby TrueHD, DTS-HD MA |
+| `{{probeAudio}}` | 探测完整音频描述（编码、声道等） | Dolby TrueHD 7.1 |
 | `{{probeHDR}}` | 探测 HDR 类型 | Dolby Vision P8, HDR10 |
 | `{{probeSubtitle}}` | 探测字幕 | PGS 简体中文 |
 | `{{probeColorDepth}}` | 探测色深 | 10-bit |
@@ -309,7 +311,7 @@ naming:
 :::
 
 ::: info 命名与轨道筛选的关系
-`probeAudio` 和 `probeSubtitle` 用于生成文件名中的音频、字幕摘要。`scoring.audio_codec` 和 `scoring.subtitle` 中的轨道条件用于筛选资源，不会改变命名模板，也不会调整媒体内部的轨道、顺序或默认标记。
+`probeAudio` 和 `probeSubtitle` 用于生成文件名中的音频、字幕摘要；其中 `probeAudio` 会包含完整描述（例如 `Dolby TrueHD 7.1`），不再只有编码名称。`scoring.audio_codec` 和 `scoring.subtitle` 中的轨道条件用于筛选资源，不会改变命名模板，也不会调整媒体内部的轨道、顺序或默认标记。
 :::
 
 ### 模板语法说明
@@ -1137,6 +1139,7 @@ tmdb_override:
   - tmdb_id: 12345
     media_type: movie
     title: "自定义标题"
+    origin_country: ["CN"]
 
 # 仅排除自动识别候选
 tmdb_blacklist:
@@ -1151,6 +1154,8 @@ tmdb_blacklist:
 每条规则都必须包含正整数 `tmdb_id` 和 `media_type`（`movie` 或 `tv`）。匹配键为 **`tmdb_id + media_type`**：TMDB 的电影和剧集 ID 是独立命名空间，因此相同数字的电影和剧集互不影响；如需同时屏蔽两者，请分别写两条规则。
 
 `tmdb_override` 延续原有语义，用于覆盖指定 TMDB 条目的元数据。`tmdb_blacklist` 不会删除 TMDB 缓存，也不表示该 ID 在 TMDB 中不存在；它只会让自动识别将该条目视为不可用候选。
+
+覆盖规则中的 `origin_country` 同样适用于电影和剧集，可用于修正来源国家/地区后再参与分类；它与 `production_countries` 的制作国家/地区字段分开保存。部分 TMDB 条目没有来源地区时，分类规则仍会按缺失处理。
 
 黑名单候选会在同年份唯一性判断、评分、TV 校验和 AI 候选交接前被过滤，因此错误的同名同年份结果不会再阻塞其他可信候选。文件名或目录中的显式 TMDB ID、渲染词 `bind` 绑定，以及自动季集重映射的目标也会复核黑名单；命中时会回退到常规标题识别。若没有其他可信候选，结果保持未识别，并显示 `tmdb_blacklisted` 诊断，而不会被误报为网络错误。
 
@@ -1310,6 +1315,8 @@ mr 渲染词替换 → 文件名解析 → TMDB 匹配 → 季集映射(MP) → 
 - **分类规则**：整体替换，本地 > 订阅 > 内置
 - **自定义规则**：本地和订阅的 YAML 按字段合并（`mr`、`mp`、`groups` 等分别拼接），本地规则排在前面（优先执行）
 - **TMDB 规则**：`tmdb_override` 按 `tmdb_id + media_type` 使用本地覆盖订阅；`tmdb_blacklist` 取订阅与本地规则的并集，任一来源列出即生效。只包含 `tmdb_blacklist` 的订阅同样可以被识别和重载。
+
+远程订阅返回 404 或 410 时，MediaTidy 会视为上游已删除并清理本地生效规则；超时、网络波动等临时失败则继续使用最后一次成功缓存，不会因为一次拉取异常让规则突然消失。
 
 ### GitHub Webhook 自动同步
 

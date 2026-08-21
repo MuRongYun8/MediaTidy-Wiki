@@ -65,7 +65,7 @@ MediaTidy 内置 TMDB 持久化缓存系统（SQLite 表 `tmdb_cache`），避�
 - 评分
 - 类型标签
 - IMDB ID
-- 制片国家 / 原始语言
+- 来源国家/地区、制作国家/地区 / 原始语言
 
 ::: info 自动锁定
 编辑后的条目会自动标记为**已锁定**，防止被 LRU 淘汰覆盖你的修改。
@@ -113,12 +113,14 @@ MediaTidy 内置 TMDB 持久化缓存系统（SQLite 表 `tmdb_cache`），避�
 | `runtime` | 时长（分钟，仅电影有效） |
 | `status` | 发行状态（如 Released / Ended / Returning Series） |
 | `imdbId` | IMDB ID |
-| `originCountry` | 制片国家（JSON 数组，如 `["US","GB"]`） |
+| `originCountry` | TMDB 详情顶层来源国家/地区（JSON 数组，如 `["US","GB"]`） |
 | `originalLanguage` | 原始语言代码（如 `en`、`ja`） |
 | `locked` | 是否锁定 |
 | `accessedAt` | 最后访问时间（LRU 淘汰依据） |
 | `createdAt` | 首次缓存时间 |
 | `updatedAt` | 最后更新时间 |
+
+电影的 `originCountry` 缺失时，升级不会全量刷新历史详情；只有启用了电影 `origin_country` 分类规则且使用时发现字段缺失，系统才会按需补齐一次。TMDB 返回空列表也会视为已加载。锁定条目只补入缺失详情字段，不会覆盖已锁定的元数据或既有制作国家缓存。
 
 ---
 

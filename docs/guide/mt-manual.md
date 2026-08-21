@@ -434,7 +434,7 @@ naming:
 <h4>对齐分类</h4>
 <ul>
 <li><strong>电影分类</strong>：推荐使用 <code>original_language</code>（语种）参数</li>
-<li><strong>剧集分类</strong>：推荐使用 <code>origin_country</code>（国家）参数</li>
+<li><strong>电影和剧集分类</strong>：可使用 <code>origin_country</code>（TMDB 顶层来源国家/地区）参数；按制作国家/地区分类时使用 <code>production_countries</code></li>
 </ul>
 <h4>特殊分类示例（儿童/动漫）</h4>
 
