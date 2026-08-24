@@ -66,6 +66,7 @@ MediaTidy 内置 TMDB 持久化缓存系统（SQLite 表 `tmdb_cache`），避�
 - 类型标签
 - IMDB ID
 - 来源国家/地区、制作国家/地区 / 原始语言
+- TMDB 地区内容分级（只读展示，不支持人工覆盖）
 
 ::: info 自动锁定
 编辑后的条目会自动标记为**已锁定**，防止被 LRU 淘汰覆盖你的修改。
@@ -122,6 +123,18 @@ MediaTidy 内置 TMDB 持久化缓存系统（SQLite 表 `tmdb_cache`），避�
 
 电影的 `originCountry` 缺失时，升级不会全量刷新历史详情；只有启用了电影 `origin_country` 分类规则且使用时发现字段缺失，系统才会按需补齐一次。TMDB 返回空列表也会视为已加载。锁定条目只补入缺失详情字段，不会覆盖已锁定的元数据或既有制作国家缓存。
 
+## 地区内容分级缓存
+
+TMDB 的地区内容分级记录在现有缓存条目的 `detail_json` 中，不需要 SQLite 迁移。电影来自 [Release Dates](https://developer.themoviedb.org/reference/movie-release-dates) 的 `certification`，剧集来自 [Content Ratings](https://developer.themoviedb.org/reference/tv-series-content-ratings) 的 `rating`；系统统一保存为 `地区:分级` 对，例如 `US:PG-13`、`JP:R15+`。
+
+- 只有活动分类规则实际使用 [`content_ratings`](/features/rules#地区内容分级) 时，自动整理才会请求分级接口；不会为了升级而全量刷新历史缓存。
+- 老缓存缺少该字段时，会在首次需要分类的整理中自动补取并写回。TMDB 返回空列表也会标记为已加载，避免对同一条目重复请求。
+- 分级请求失败不会阻断整理，也不会把失败结果缓存为“已加载”；本次会继续按现有信息匹配后续/保底规则，下次需要时仍会重试。
+- 后台缓存刷新会保留已经缓存的分级，但不会主动额外请求分级接口；缓存列表中的单条“从 TMDB 刷新”会同时同步最新分级。
+- 锁定条目仍保留人工编辑的基础元数据。自动补取只补入缺失的分级字段，不会覆盖这些人工修改。
+
+在缓存编辑详情中，地区/分级以只读标签显示：**尚未获取** 表示旧缓存尚未因分类规则需要而补取，**TMDB 未提供** 表示已查询但结果为空。详情接口的 `contentRatings` 也遵循这一约定：`null` 为尚未获取，`[]` 为已获取但无分级。
+
 ---
 
 ## LRU 淘汰机制
@@ -167,6 +180,7 @@ MediaTidy 内置 TMDB 持久化缓存系统（SQLite 表 `tmdb_cache`），避�
 | `/api/tmdb-cache/stats` | GET | 获取缓存统计（总数、锁定数、最大容量） |
 | `/api/tmdb-cache/config` | GET | 获取缓存配置 |
 | `/api/tmdb-cache/config` | POST | 保存缓存配置 |
+| `/api/tmdb-cache/:id/detail` | GET | 获取缓存详情、关键词和只读 `contentRatings` |
 | `/api/tmdb-cache/:id` | PUT | 编辑单条缓存 |
 | `/api/tmdb-cache/:id` | DELETE | 删除单条缓存 |
 | `/api/tmdb-cache` | DELETE | 清除所有未锁定缓存 |

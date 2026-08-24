@@ -50,6 +50,7 @@ tv:
 | `filename_keywords` | 原始文件名 | 文件名包含关键词即匹配 | `"REMUX,Atmos"` |
 | `series_directors` | TMDB 导演 | 导演名称包含匹配 | `"宫崎骏"` |
 | `series_actors` | TMDB 演员 | 演员名称包含匹配（始终可选） | `"成龙,李连杰"` |
+| `content_ratings` | TMDB 地区内容分级 | `地区:分级` 完整组合精确匹配 | `"US:PG-13,US:R,JP:R15+"` |
 | `vote_average` | TMDB 评分 | 评分范围 min-max | `"0.1-5.6"` |
 | `year` / `release_year` | TMDB 年份 | 精确、范围或列表 | `"2020"`, `"2000-2020"`, `"2020-"` |
 | `file_extension` | 文件后缀名 | 小写扩展名 | `"mkv,iso"` |
@@ -57,6 +58,34 @@ tv:
 | `hdr` / `dynamic_range` | HDR 类型 | 从文件名或 ffprobe 获取 | `"Dolby Vision,HDR10"` |
 
 `origin_country` 使用 TMDB 电影或剧集详情顶层的来源国家/地区字段，电影和剧集均可使用；部分条目可能为空，且不会用 `production_countries` 代替。需要按实际制作国家/地区分类时使用 `production_countries`。两者是独立字段，不要因为制作国家命中就假设来源国家/地区也命中。
+
+### 地区内容分级
+
+`content_ratings` 用于按 **TMDB 的国家/地区分级** 分类，与 `vote_average` 用户评分无关。电影取自 TMDB [Release Dates](https://developer.themoviedb.org/reference/movie-release-dates) 的 `certification`；剧集取自 TMDB [Content Ratings](https://developer.themoviedb.org/reference/tv-series-content-ratings) 的 `rating`。剧集使用剧集级分级，不会扩展到季或单集。
+
+每个条件值必须同时包含 ISO 3166-1 地区代码和该地区的分级，中间用 `:` 连接；不能只写 `R`、`PG-13` 等分级名称，也没有全局默认地区。匹配不区分大小写，但必须是完整的地区/分级对：
+
+```yaml
+movie:
+  电影/美国限制级:
+    content_ratings: "US:R,US:NC-17"
+
+tv:
+  剧集/日本 R15+:
+    content_ratings: "JP:R15+"
+```
+
+该字段复用分类条件的通用语义：逗号分隔为 OR；值前加 `-` 或 `!` 为排除；字段前/后加 `?` 为可选条件。例如：
+
+```yaml
+电影/美国 PG-13 且非日本 R15+:
+  content_ratings: "US:PG-13,-JP:R15+"
+
+电视剧/可能是美国 TV-MA:
+  ?content_ratings: "US:TV-MA"
+```
+
+TMDB 未提供分级时，普通包含条件不会命中，整理会继续尝试后续规则或保底规则；只有排除值时仍遵循通用的排除语义。
 
 ### 条件语法详解
 
