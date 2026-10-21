@@ -84,6 +84,11 @@ layout: page
         <h3>规则引擎</h3>
         <p>分类、命名、质量评分规则可视化配置，支持订阅同步，适配不同媒体库习惯。</p>
       </a>
+      <a class="mt-feature" href="/MediaTidy-Wiki/plugins/">
+        <span>07</span>
+        <h3>插件中心与 SDK</h3>
+        <p>从自己的仓库安装插件，按目录和能力授权。下载开发 Skill，使用 SDK v2 编写功能、页面与自动化流程。</p>
+      </a>
     </div>
   </section>
 

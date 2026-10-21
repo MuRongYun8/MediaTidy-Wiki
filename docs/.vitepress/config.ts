@@ -17,12 +17,37 @@ export default defineConfig({
       { text: '指南', link: '/guide/mt-manual', activeMatch: '/guide/' },
       { text: '功能', link: '/features/organize', activeMatch: '/features/' },
       { text: '配置', link: '/config/drive', activeMatch: '/config/' },
+      { text: '插件与开发', link: '/plugins/', activeMatch: '/plugins/' },
       { text: 'FAQ', link: '/faq' },
       { text: '官方群组', link: 'https://t.me/MediaTidy_Offical' },
       { text: '联系作者', link: 'https://t.me/murongyun574_bot' },
     ],
 
     sidebar: {
+      '/plugins/': [
+        {
+          text: '插件中心',
+          items: [
+            { text: '文档首页', link: '/plugins/' },
+            { text: '用户指南', link: '/plugins/user-guide' },
+            { text: '下载开发 Skill', link: '/plugins/downloads' },
+          ],
+        },
+        {
+          text: 'SDK v2 开发',
+          items: [
+            { text: '开发入门', link: '/plugins/getting-started' },
+            { text: '完整能力清单', link: '/plugins/capabilities' },
+            { text: '业务接口', link: '/plugins/business' },
+            { text: '权限与 FF 保护', link: '/plugins/permissions' },
+            { text: '定时、队列与完成事件', link: '/plugins/automation' },
+            { text: '存储与数据管理', link: '/plugins/storage' },
+            { text: '页面协议与 Logo', link: '/plugins/ui' },
+            { text: '开发工具与发布', link: '/plugins/tooling' },
+            { text: '验证记录与限制', link: '/plugins/validation' },
+          ],
+        },
+      ],
       '/guide/': [
         {
           text: '入门指南',
@@ -60,6 +85,7 @@ export default defineConfig({
           text: '系统功能',
           items: [
             { text: '仪表盘与工具箱', link: '/features/dashboard' },
+            { text: '插件中心', link: '/plugins/' },
             { text: 'TMDB 缓存管理', link: '/features/tmdb-cache' },
             { text: 'FF 缓存', link: '/features/ff-cache-server' },
           ],
