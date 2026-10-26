@@ -1,52 +1,76 @@
-# 开发入门
+# 快速开始：第一个 Python 插件
 
-先准备 Node.js 22 或更新版本、同版本 SDK 开发包和匹配平台的 `mt-plugin-runtime`。开发机可以安装构建依赖；MT 安装插件时只读取预打包文件，不执行 npm、构建或仓库脚本。
+准备 Python **3.12** 和 uv **0.6.7**。默认 Python 页面不需要 Node；React 页面另需 Node **22.12+**。先从[开发资源](downloads.md)取得完整 Skill，或使用主仓库的 `plugin-sdk/`。
 
-```sh
-node /path/to/plugin-sdk/cli.cjs init ./my-plugin
-cd my-plugin
-npm install
-npm run build
-npm run check
-npm test
-npm run preview
-npm run pack
+## 选择模板
+
+| 示例 | 主仓库位置 | Skill 包中的位置 |
+|---|---|---|
+| 目录扫描与任务续接 | `plugin-sdk/starter/` | `assets/plugin-sdk/starter/` |
+| Pillow 图片处理 | `plugin-sdk/examples/pillow/` | `assets/plugin-sdk/examples/pillow/` |
+| React 交互页面 | `plugin-sdk/examples/react/` | `assets/plugin-sdk/examples/react/` |
+
+把所需模板复制到自己的工作目录，修改 `plugin.json` 的 `id/name/author/description`。保留 `entry: "plugin.py:Plugin"`、`sdkVersion: "2"` 和 UI v2 声明。React 模板的本地前端依赖需要一起复制或重新指向公开前端 SDK，见 [UI](ui.md)。
+
+目录模板是小规模教学示例，将报告放在单个 KV 值中。扩展到大量文件时应改成分键存储与分页查询，遵守[工作流容量](workflow-capacity.md)，不要把模板当成无上限目录索引器。
+
+## 准备作者环境
+
+在复制后的插件目录执行（PowerShell）：
+
+```powershell
+uv sync --python 3.12
+# 替换为本机主仓库的 plugin-sdk，或解压 Skill 的 references/sdk
+$sdkPath = 'C:/path/to/mediatidy-plugin-development/references/sdk'
+uv pip install --python .venv/Scripts/python.exe "$sdkPath[dev]"
+uv run --no-sync python -m mt_plugin check
+uv run --no-sync python -m mt_plugin pack
 ```
 
-`init` 默认以本地 SDK 路径作为开发依赖，不会寻找尚未发布的远程包。先修改 `plugin.json` 中的 `id/name/author/description`，保持 SDK 与页面版本。不同作者应使用不同 ID。仓库来源也是身份的一部分，同名仓库不能继承别人的数据或授权。
+Linux/macOS 对应命令：
 
-```text
-plugin.json          清单、权限、参数及页面入口
-src/worker/index.ts  同步 Goja 业务入口
-src/ui/page.ts       TypeScript 页面定义
-dist/index.js        构建出的业务脚本
-ui/page.json         构建出的纯 JSON 页面
-ui/icon.png          可选 Logo
-sdk/                固定版本的类型与模拟接口快照
-tests/goja.json      真实 Goja 执行场景
-tests/preview.json   页面模拟数据
+```bash
+uv sync --python 3.12
+sdk_path=/path/to/mediatidy-plugin-development/references/sdk
+uv pip install --python .venv/bin/python "${sdk_path}[dev]"
+uv run --no-sync python -m mt_plugin pack
 ```
 
-入口是 `module.exports.run(input)`，返回 JSON 值。`input` 包含 `action/files/input/config/sdkVersion/event`；`files` 是用户直接选择的文件和目录，目录不会隐式递归。SDK 在 Goja 内同步调用，不能用 `async`、Promise、Node 模块或浏览器 API。
+SDK 只安装在作者环境，**不要**用 `uv add mt-plugin` 把它写入插件运行依赖或锁文件。`--no-sync` 防止 uv 移除额外安装的作者工具。`check` 和 `pack` 都会更新锁文件、导入作者入口并运行 mypy，只用于你信任的源码。
 
-```ts
-module.exports.run = function (input: MTInput) {
-  const previous = mt.storage.get({key: 'last-result'});
-  const result = {count: input.files.length, hadPrevious: previous.found};
-  mt.storage.set({key: 'last-result', value: result});
-  return result;
-};
+## 编写入口
+
+以下展示处理函数形状；`inspect`、`summary` 还需要在清单的 `actions`、`queries` 中声明，配套清单见[清单与参数](manifest.md)。
+
+```python
+from mt_plugin import Plugin as BasePlugin, Context, action, query, ui
+
+class Plugin(BasePlugin):
+    def on_init(self, ctx: Context):
+        self.count = 0
+        ctx.mt.log(level="info", message="插件已初始化")
+
+    @action("inspect")
+    def inspect(self, input: dict, ctx: Context):
+        self.count += 1
+        return {"count": self.count}
+
+    @query("summary")
+    def summary(self, input: dict, ctx: Context):
+        return {"count": self.count}
+
+    def get_page(self, ctx: Context):
+        return ui.page(ui.Button(
+            label="检查", onClick=[{"type": "invoke", "actionId": "inspect"}]
+        ))
 ```
 
-在清单声明 `storage`；需要文件选择时再声明 `files.read`。用户仍需授予具体目录读取权限。单独声明能力不代表已经获得资源授权。
+对象会复用，进程重启会丢失内存状态。需要持久化时声明并使用 `storage`。业务和读取通道可能同时访问对象，涉及共享状态时由作者处理一致性。文件选择由宿主放入 `ctx.files`，不是任意绝对路径参数。
 
-目录清单示例包含四个动作：
+## 打包与验证
 
-1. `scan-files`：将目录交给 `files.scan`，为每个扫描任务生成本次运行内稳定的幂等键；单独选择的文件保存到临时业务键。
-2. `collect-report`：只接受宿主完成事件，分页读取任务结果，合并独立文件，去重后原子保存最新报告并删除临时键。
-3. `show-report`：读取持久报告。MT 重启或刷新页面不会丢失报告。
-4. `select-report`：读取表格跨页选择的相对路径，保存选中项，演示 `selectionBind`、`rowKey` 和 `stringList` 参数。
+发布包根目录至少包含 `plugin.json`、`plugin.py`、`pyproject.toml`、`uv.lock`。`pack` 输出 `dist/<插件ID>-<版本>.zip`。其他 Python 模块、提示词和资源应加入 `[tool.mt-plugin].include`；目录被递归收集。
 
-示例报告限制 1,000 行及一个 KV 值的字节预算；达到上限会提示缩小范围。更大报告应按页保存多个键，不应突破通信和存储上限。扫描失败时已生成的逐项结果仍可查看，不能把部分报告描述成完整扫描成功。
+使用 MT「上传 ZIP」读取清单，检查授权后安装。依赖准备完成后仍需配置、启用，再执行小规模测试并查看最终任务状态。也可提交完整可安装内容到公开 GitHub/Gitee 仓库；React 必须携带预构建 `ui/`。开发 Skill ZIP 不是插件安装包。
 
-改动后运行 `build/check/test/pack`，再在测试用 MT 中安装并授予最小权限。修改页面只需重建 `ui/page.json`，不修改宿主 React 代码。
+开发机检查不能代替宿主检查、目标平台依赖安装或实际页面验证，完整步骤见[验收](validation.md)。

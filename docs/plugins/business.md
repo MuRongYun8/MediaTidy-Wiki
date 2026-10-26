@@ -1,63 +1,75 @@
-# 业务接口与组合示例
+# 业务、文件与任务能力
 
-所有方法的准确参数、返回类型、能力权限与调用配额见 [能力清单](capabilities.md)。SDK 为同步 JSON 调用，失败抛出带 `code/message/retryable` 的错误。不要依赖中文错误文本做逻辑判断。
+同步调用使用 `ctx.mt`，异步使用 `await ctx.amt`。方法、权限、限额及允许通道见[能力清单](capabilities.md)，输入输出以 [methods.json](/downloads/plugins-sdk-v2/methods.json) 为准。Python 顶层关键字转 camelCase，嵌套字典保持 JSON 字段名。
 
-| 能力组 | 如何使用 |
+## 如何选择能力
+
+| 业务 | 能力与边界 |
 |---|---|
-| `runtime` | 查询运行 ID、资源、方法授权和额度；报告进度与检查取消 |
-| `files` | `roots/list/stat/readText` 为读取；`scan/search` 和变更返回任务 |
-| `system` | 公开版本、媒体扩展名、TMDB 语言、AI 模型标识及功能启用状态 |
-| `rules` | 规则定义、修订、启用状态；`effective` 查询授权整理方案相关规则 |
-| `media/tmdb` | 可选文件名解析或 MT 识别，以及独立作品搜索、详情和季集查询 |
-| `organize` | 读取方案；授权自动执行；准备手动草稿后交给宿主确认 |
-| `strm` | 方案、预览、生成、核验已有输出、授权清理孤立元数据 |
-| `quality` | 准备评分数据、单项/批量评分、两文件比较及升级判断 |
-| `records` | 按授权整理/STRM 方案读取业务历史和失败摘要 |
-| `tasks/triggers` | 持久任务、逐项结果、取消、完成动作、定时和完成订阅 |
-| `ai/http/notification` | 使用宿主模型、公开联网搜索、目标授权 HTTP 和指定通道通知 |
-| `config/secrets/storage/log` | 自身配置、第三方密钥、业务持久化与有限日志 |
+| 运行状态 | `runtime.info/resources/capabilities`；`checkpoint` 检查取消；`progress/result` 发布进度和部分结果 |
+| 文件 | `roots/list/stat/read_text`；后台 `scan/search`；按授权执行复制、移动、删除和写入 |
+| 系统、规则与历史 | `system.info/config` 返回公开配置；`rules`、`records` 读取允许的规则和业务记录 |
+| 媒体与 TMDB | `media.parse/recognize`；`tmdb` 的搜索、详情及季集查询，互相不是必经步骤 |
+| 整理 | `organize.run` 自动方案；`organize.manual.run` 指定作品直接执行；`manual.prepare/prepare_batch` 草稿 |
+| STRM | 方案读取、预览、生成、核验和清理；核验与清理不可当成只读查询 |
+| 质量评分 | `quality.prepare/evaluate/evaluate_batch/compare/upgrade`；仅业务结论，不导出 FF 探测明细 |
+| AI | `ai.capabilities/complete/chat/web.search`；使用用户配置的服务，模型输出不产生权限 |
+| 外部通信 | `http.request` 按目标/路径/方法授权，`notification.send` 按通知通道授权 |
+| 持久数据与自动化 | `storage`、`tasks`、`triggers`，见各专题 |
 
-`config.get()` 是当前插件配置；`system.config()` 是 MT 公开业务配置；`organize.profile/strm.profile` 是已授权方案。它们不能用来读取全部数据库配置。规则与方案本轮只读，不提供系统设置、规则或方案的创建/修改/删除。
+`config.get` 是当前插件配置，`system.config` 是公开业务配置，授权方案通过 `organize.profile/strm.profile` 读取，不提供任意数据库配置入口。
 
-方案返回目录摘要：只有已授予对应文件目录时，才包含可用于 `files` 的 `rootId/path`。看到方案目录并不获得目录读写权限。自动执行方案则由方案授权覆盖其原有业务行为；方案内容变化会要求重新授权。
+## 文件选择与分页
 
-```ts
-const run=mt.runtime.info();
-const file=mt.files.stat({rootId:'目录ID',path:'notes.txt'});
-const current=mt.files.readText({ref:file.ref});
-const task=mt.files.writeText({
-  destination:{rootId:file.rootId,path:file.path},fileRef:file.ref,
-  text:current.text+'\n已处理',overwrite:true,idempotencyKey:run.runId+':notes'
-});
-mt.tasks.wait({refs:[task.ref]});
-return {message:'正在写入'};
+选择器返回文件或目录描述到 `ctx.files`，选择目录不会隐式展开全部文件。逐页浏览用 `files.list`；递归扫描用 `files.scan`，等待扫描任务后分页读取 `tasks.items`。列表和任务明细单页最多 100，完整工作流最多 500，底层扫描另有容量限制，见[大批量流程](workflow-capacity.md)。
+
+文件变更默认不覆盖；跨目录操作检查源与目标授权及文件版本。根目录不可删除，递归删除须显式指定。宿主遵循路径路由、限流和取消语义；不支持的云盘操作返回 `UNSUPPORTED`，不要通过直接拼接路径绕开检查。
+
+## 三种整理路线
+
+| 路线 | 调用 | 后续 |
+|---|---|---|
+| 让已有方案识别整理 | `organize.run` | 授权自动方案按自身识别、命名、覆盖和清理策略执行 |
+| 插件已确定作品 | `organize.manual.run` | 逐文件直接入队，不再要求草稿确认 |
+| 需要用户审阅 | `organize.manual.prepare/prepare_batch` | 宿主 DraftReview 编辑、核验并确认，准备本身不等于入队 |
+
+直接整理的示例片段（还需清单声明相应能力、动作与内部续接）：
+
+```python
+task = ctx.mt.organize.manual.run(
+    file_ref=file["ref"], profile_id=profile_id,
+    tmdb_id=tmdb_id, media_type="tv", season=1, episode=3,
+    idempotency_key=f"{ctx.flow_id}:{file['ref']}"
+)
+ctx.mt.tasks.wait(refs=[task["ref"]], completion={
+    "action": "collect-result", "input": {}
+})
+return {"taskRef": task["ref"], "status": "waiting"}
 ```
 
-文本必须是 UTF-8，最大 128 KiB。复制/移动的 `destination` 指目标目录，宿主保留源名称；写文本的 `destination` 指目标文件。`rename` 的 `name` 只能是名称。文件搜索按名称/相对路径包含查询，不提供任意正则执行。批量变更最多 100 项，每项独立状态；整体不是事务，已完成部分不回滚。
+直接路线检查文件引用、方案授权、修订及参数，不替作者重新识别作品；实际整理仍读取命名与元数据所需的 TMDB 资料，并执行季集和封存保护等业务校验。混合作品逐文件传作品及季集，不能把整个目录绑定为同一作品。
 
-```ts
-const profile=mt.organize.profile({id:1});
-const task=mt.organize.run({profileId:profile.id,idempotencyKey:mt.runtime.info().runId+':organize'});
-mt.tasks.wait({refs:[task.ref],completion:{action:'send-summary',input:{}}});
-return {message:'等待整理方案完成'};
-```
+草稿路线需要 `organize.prepare` 及确认所需的 `organize.submit` 授权。**没有**供 worker 调用的 `organize.submit/confirm` 方法，确认在宿主完成。
 
-自动执行遵循授权方案自身识别、命名、覆盖和清理策略。指定作品使用 `organize.manual.prepare` 或 `prepareBatch`；不会入队。目录展开为每文件草稿，混合作品应逐文件提议。作者页面使用宿主 `Results/SelectionBar`，用户可修正、预览并确认。参数变化会重新核验和确认。
+## 结果、幂等与续接
 
-`strm.preview` 产生含相对输出路径的任务结果；`strm.verify` 走原有生成队列核验已有输出；`strm.cleanup` 运行原有孤立元数据清理，需要独立能力。不能把核验或清理解释为只读操作。
+`queued` 只代表入队，最终任务状态才代表结果。`runtime.result(value=...)` 可以先发布不超过 256 KiB 的部分结果，后续取消或失败仍可查看。任务引用必须使用宿主返回的 ref，不能保存内部队列整数 ID 代替它。
 
-评分先调用 `quality.prepare` 并等待完成，再使用评分/比较；缺失资料时检查 `completeness`，不能把缺失分值当成已验证的低质量。规则定义可读取，远程 FF 运行数据不可读取。
+在提交业务前保存稳定幂等键与状态；同一键不得用于不同请求。处于 `submitting/outcome_unknown` 或未确认是否成功提交时，先核对原任务，不能自动重试。取消保留已经完成的操作，不能承诺回滚。等待和续接见[生命周期](automation.md)。
 
-```ts
-const token=mt.secrets.get({key:'apiToken'}).value;
-const response=mt.http.request({url:'https://example.com/api/report',method:'POST',
-  headers:{Authorization:'Bearer '+token},contentType:'application/json',
-  body:JSON.stringify({count:3}),timeoutMs:10000,responseHeaders:['content-type']});
-return {status:response.status};
-```
+## 二进制与图片
 
-请求必须匹配用户 HTTP 授权；禁止转发 MT 凭据。不要把密钥、完整请求或响应随意记录。通知返回成功表示进入通知队列，不代表对方已经收到。
+| Python 辅助方法 | 用途 |
+|---|---|
+| `ctx.download(ref)` | 流式下载授权文件到当前工作目录，返回 Path |
+| `ctx.read_bytes(ref)` | 读取最多 8 MiB 内存数据 |
+| `ctx.upload(path, destination, idempotency_key=...)` | 把工作文件交给宿主，返回任务引用 |
+| `ctx.write_bytes(data, destination, idempotency_key=...)` | 最多 8 MiB 的内存数据写入工作文件并上传 |
 
-AI 方法不会自动开启模型或联网。`ai.capabilities` 查询可用性；`ai.complete/chat` 只负责模型通信；工具执行由插件显式分发到允许的 SDK 方法。联网返回公开标题、摘要、来源。输入线索和查询词可能发送给用户配置的外部服务。模型输出不是权限、路径或整理确认。
+异步对应 `adownload/aread_bytes/aupload/awrite_bytes`。`destination` 是 `{"rootId": "...", "path": "relative.png"}`。流式传输上限 256 MiB，不把二进制塞入 JSON RPC；覆盖必须明确 `overwrite` 和目标 `version`。
 
-常见错误：`PERMISSION_DENIED` 检查能力与资源；`RESOURCE_CHANGED/CONFLICT` 刷新并核对；`UNSUPPORTED` 调整方案，不绕过路由；`QUOTA_EXCEEDED` 缩小批次或请管理员管理配额；`OUTCOME_UNKNOWN` 停止自动重试并核对业务结果；`FLOW_WAITING` 立即返回释放工作进程。失败后使用同一幂等键查询已有任务，不通过换键掩盖未知结果。
+当前二进制读取、写入和文件图片预览支持本地/FUSE 授权目录；其他未支持路由返回 `UNSUPPORTED`。宿主接管已提交上传的工作文件，随后清理工作目录不会使排队任务丢失数据。Pillow 示例演示读取、缩放、写回、等待任务与文件引用预览。
+
+## AI 调用
+
+`ai.capabilities` 查询可用性，调用不会自动启用模型或联网。普通 `ai.chat` 与单次原生搜索是不同模式；选择 `single_request=True, native_web_search=True` 时还需要联网能力授权和宿主 AI 联网设置。具体协议、错误及示例身份核对见 [AI 工作流](ai-organize.md)。文件名、上下文及查询内容可能发送到用户配置的外部服务。

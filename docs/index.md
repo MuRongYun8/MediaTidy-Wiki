@@ -87,7 +87,7 @@ layout: page
       <a class="mt-feature" href="/MediaTidy-Wiki/plugins/">
         <span>07</span>
         <h3>插件中心与 SDK</h3>
-        <p>从自己的仓库安装插件，按目录和能力授权。下载开发 Skill，使用 SDK v2 编写功能、页面与自动化流程。</p>
+        <p>上传 ZIP 或从公开仓库安装 Python 插件，按目录和能力授权。下载完整开发 Skill，编写 Python 组件或 React 页面及后台任务流程。</p>
       </a>
     </div>
   </section>

@@ -1,63 +1,44 @@
-# 清单、页面与 Logo
+# 双模式 UI
 
-清单固定 `entry: "dist/index.js"`。字段类型支持 `text/textarea/number/boolean/files/profile/stringList`，通过 `key/label/type/required/default` 定义。`files` 写入运行选择而非普通 input。字段 key 应符合同版本校验规则；未知字段或不匹配类型会被后端拒绝。每项配置/动作参数上限 16 KiB。
+清单声明 `ui.mode = python | react`。模式不能被损坏页面的隐式回退替换。设置、启停、授权、密钥、日志、任务、历史及整理草稿审阅由宿主外壳提供。
 
-```json
-{
-  "id":"example.my-plugin","name":"我的插件","version":"0.1.0","sdkVersion":"2",
-  "author":"作者","description":"生成授权目录清单","entry":"dist/index.js",
-  "permissions":["files.read","storage"],"config":[],
-  "actions":[{"id":"run","label":"生成清单","fields":[{"key":"files","label":"目录","type":"files","required":true}]}],
-  "ui":{"version":"1","entry":"ui/page.json","icon":"ui/icon.png"}
-}
+## Python 页面
+
+`get_page(ctx)` 使用 `mt_plugin.ui` 返回 MT UI v2 JSON。页面生成是只读调用，每次返回都由宿主校验组件、属性、绑定、事件和规模。普通 Python 函数可组合可复用组件：
+
+```python
+from mt_plugin import ui
+
+def results():
+    return ui.Card(ui.Text(text=ui.ref("run.progress.message")),
+                   ui.Button(label="刷新数据", onClick=[{"type":"query", "queryId":"history"}]))
+
+def get_page(ctx):
+    return ui.page(results(), queries=[{"id":"history", "name":"history"}])
 ```
 
-页面在 `src/ui/page.ts` 用类型检查，在构建时输出 `ui/page.json`。安装后浏览器只接收经过校验的 JSON；不加载作者的 React 或 JavaScript。`ui/icon.png` 来自插件包，安装时解码校验和重新编码，参与完整性哈希与回退。不要使用远程图片、SVG、HTML 或 CSS 作为 Logo。
+布局包括 Page、Section、Stack、Grid、Card、Divider、Tabs/Tab、Details、Dialog、Drawer；内容包括 Text、Markdown、Image、Badge、Alert、Metric、Progress、Steps、EmptyState；输入包括 Input、Textarea、Select、Checkbox、FilePicker、ProfilePicker；数据包括 Repeat 和 Table（筛选、排序、分页、跨页选择、移动端卡片）。宿主插槽包括 ConfigForm、DraftReview、RunHistory、RunLog、TaskList、ScheduleForm、EventSubscriptions、DataManagement。
 
-```ts
-import type {UIPage} from '../../sdk/ui-schema';
-export default {
-  version:'1',tabs:[{id:'run',label:'运行',content:[
-    {component:'Card',props:{title:'选择目录'},children:[
-      {component:'FilePicker'},
-      {component:'Button',props:{label:'生成清单',action:'start',actionId:'run'}}
-    ]},
-    {component:'Table',props:{source:'run.result',columns:[
-      {label:'文件',cells:[{component:'Text',props:{bind:'row.name',lines:2}}]}
-    ]}}
-  ]}]
-} satisfies UIPage;
-```
+`input`、`config`、`state` 是独立可写空间；config 只是草稿，必须显式保存。`plugin`、`run`、`flow`、`stats`、`query.<id>` 和 `row` 只读。`ui.ref(path)` 绑定值，`ui.expr(op, *args)` 使用有界受控表达式；visible/disabled 可条件绑定，Repeat 使用数据循环。
 
-| 组件 | 作用 |
-|---|---|
-| Page、Stack、Grid、Card | 页面与响应式布局，受控间距、列数 |
-| Text、Badge、Alert、Status、EmptyState | 文本、状态、错误、空态 |
-| Input、Textarea、Select、Checkbox | 绑定清单参数或配置 |
-| FilePicker、ProfilePicker | 宿主授权资源选择 |
-| Steps、Metric、Progress | 阶段、统计、真实进度 |
-| Table、Details、Search、Pagination | 结果表格、详情与分页 |
-| Results、SelectionBar | MT 整理核验、修正和最终确认 |
-| RunHistory、RunLog、ConfigForm、ScheduleForm、TaskList、DataManagement | 宿主管理组件 |
-| Button | 声明动作或宿主固定事件 |
+单选 `Select` 的选项可包含 `description`；提供说明时渲染为可点击的选项卡片，值仍使用原始 `value`（包括布尔值），未提供说明时保留下拉选择。
 
-精确属性以同包 `ui-schema/index.d.ts` 和注册表为准。绑定命名空间为 `plugin/input/config/ui/run/stats/row`，只读取自身属性。`visibleWhen/disabledWhen` 仅支持 `eq/ne/truthy/falsy`，不接受 JS 表达式或函数。动态结果不能生成新组件。
+onClick 支持 set、invoke、query 和 host 事件。host 支持 saveConfig、refreshRun、refreshPage、cancelRun、newRun、openLogs、reviewDrafts。普通输入只更新前端状态；数据通过查询与运行结果更新，页面结构由“刷新页面”显式重新读取 Python。
 
-按钮事件支持 `start/newRun/refresh/cancelRun/retry/editDraft/cancelTask/openTab/clearSelection/confirmDrafts`；`start` 只能指向已声明动作。`confirmDrafts` 只是打开宿主预览，不是直接入队。`run.result` 表格适合普通数组；`run.drafts` 使用宿主整理模型，作者不能伪造可提交状态。
+`stats.selections` 是文件选择器当前勾选的文件或目录数量；`stats.files`、`stats.drafts` 是当前运行的文件和草稿数量，可用于按钮可用状态与空状态提示。
 
-页签为 `overview/run/history/settings`。把常用流程放运行页，把配置、定时放设置。展示真实排队/等待/失败/取消状态，未知总数使用不定进度。手机、深浅主题和键盘操作使用独立预览与真实浏览器检查；窄内容栏不等价手机视口。
+单页最多 256 KiB、500 个组件、深度 12，表格最多 12 列。图片可使用清单声明的 UI 资源路径，或 `file:<宿主文件引用>`；后者只预览授权的 PNG、JPEG、WebP，最多 8 MiB。禁止任意网页地址。组件属性见 [注册表](/downloads/plugins-sdk-v2/ui-registry.json)。
 
-## 普通结果批量选择
+## React 页面
 
-普通结果表使用稳定、唯一的字符串键，不把行号当身份：
+参考 `plugin-sdk/examples/react`；Skill 中对应 `assets/plugin-sdk/examples/react`。只有这类作者需要 Node 22.12+。通过 `@module-federation/vite` 构建并导出 `./Page`，发布包包括 `ui/remoteEntry.js`、模块、CSS 和资源。宿主使用配套 federation runtime 按实例与构建哈希加载。
 
-```ts
-{component:'Table',props:{
-  source:'run.result',rowKey:'row.ref',selectionBind:'input.selectedRefs',
-  columns:[{label:'文件',cells:[{component:'Text',props:{bind:'row.name'}}]}]
-}}
-```
+完整复制 Skill 的 assets 目录后，示例 frontend 的 `file:../../../../plugin-frontend-sdk` 可以直接解析。如果只搬走 React 项目，应在 `frontend/package.json` 重设 `@mediatidy/plugin-ui` 本地路径并更新 package-lock，再运行 `npm ci`。前端依赖安装完成后回到插件根目录运行 `python -m mt_plugin pack`；它会调用前端 `npm run build`。Git 安装必须提交构建好的 `ui/`，宿主不会运行 npm。
 
-动作清单声明 `{"key":"selectedRefs","label":"选择项","type":"stringList"}`，再用普通 `start` 按钮调用该动作。`stringList` 上限 1000 项、每项 512 字节，仍受每字段 16 KiB 总上限。表格每页 20 项、跨页选择，搜索不会自动取消选择；重复键和缺失键不可选。新结果中的失效选择会清除。脚本收到的选择是用户输入，调用文件或业务能力时后端仍独立校验引用和授权。
+共享 React、React DOM、JSX runtime 以及公开的 `@mediatidy/plugin-ui`，必须配置 singleton，示例使用 import:false 从宿主获取实现。公开 SDK 在 `plugin-frontend-sdk`，模板不引用主站内部源码。CSS Modules 继承主站主题变量；第三方组件随作者构建携带，MT 容器不安装 Node。
 
-宿主始终提供“宿主管理与授权”，即使作者页面省略配置页，用户仍可管理配置、资源、密钥、调度、事件和数据。`TaskList` 展示业务任务与父流程；`DataManagement` 展示当前安装的数据空间。
+页面获得 `mt`：实例状态、主题、语言、尺寸；runAction、query、saveConfig、selectFiles、selectProfile、previewUrl、openLogs、openTasks、openHistory、reviewDrafts、refreshPage。runAction 返回排队的运行引用，最终结果在宿主任务和运行记录中核对。
+
+资源会话由登录用户申请，按用户、实例与构建绑定，使用限定路径的 HttpOnly Cookie，5 分钟到期并由页面续期。资源 URL 不含主站 JWT，响应 private/no-store，PWA 排除私有资源。构建切换使用新模块标识并卸载旧页面；组件应清理自身订阅。加载和渲染错误由宿主错误边界显示，管理入口保留。
+
+React 插件与主站共享 JavaScript 环境，是受信任代码；Python 及其库同样有原生访问能力。

@@ -1,43 +1,31 @@
-# 调度、执行队列与完成事件
+# 生命周期、调度与续接
 
-MT 统一调度器保存唯一的定时定义。插件设置和全局定时任务管理操作同一条记录；不要在业务 storage 中另外维护 Cron、启用状态或进程定时器。
+每个启用的实例拥有一个长期存活的 Python worker 和插件对象。连接、第三方库、缓存与 asyncio 事件循环可复用；内存可丢失，需要跨重启保留的数据写入自身 KV 或 `ctx.data_dir`。
 
-```mermaid
-flowchart LR
-    S[MT 统一调度] --> P[受限插件队列]
-    P --> F[文件与评分准备队列]
-    P --> O[整理队列]
-    P --> R[STRM 队列]
-    F & O & R --> E[持久完成事件]
-    E --> P
-```
+## 生命周期与调用通道
 
-创建周期任务需要 `triggers.manage`。一个插件可以创建多条定时；不含文件字段的动作不要求文件选择。
+入口继承 `mt_plugin.Plugin`，支持 `validate_config(config, ctx)`、`on_init(ctx)`、`on_stop(ctx)`、`get_page(ctx)`，以及 `@action`、`@query`、`@continuation`。处理函数可同步或异步；同步使用 `ctx.mt`，异步使用 `await ctx.amt...`。在异步处理函数中直接使用同步客户端会报错，避免阻塞事件循环。
 
-```ts
-const schedule = mt.triggers.schedules.create({
-  name:'每日目录扫描', kind:'cron', cron:'0 3 * * *', timezone:'Asia/Shanghai',
-  enabled:false, request:{action:'scan-files',selections:[{rootId:'授权目录ID',path:'.'}],input:{}}
-});
-```
+配置保存、启用和更新切换前，宿主在独立进程调用 `validate_config`，不运行初始化。返回 None 或 `{ "fieldErrors": {"字段": "原因"} }`；失败保留当前安装、配置和 worker。独立校验不保证任意 Python 代码没有原生副作用，作者必须遵守纯校验契约。
 
-五段 Cron 的顺序为分钟、小时、日、月、星期。`Local` 表示 MT 服务端时区。一次性任务使用 `kind:'once'`、`at:'2026-12-01T03:00:00+08:00'`、`cron:''`。一次性时间必须含时区偏移。`list` 返回下次执行时间；`update` 必须携带当前 `revision`。首次启用和恢复用户暂停的任务由宿主界面完成，SDK 不能设置这些状态。
+`on_init` 覆盖启用、启动恢复、配置变化与更新；成功后才投递业务。`on_stop` 覆盖停用、重配置、更新、卸载和正常关闭；停止失败仍清理 worker。初始化失败或进程退出进入 error，停止投递，用户可查日志并重试；中断业务不自动重放。
 
-启用、修改和立即运行均重新验证参数、资源和安装身份。保存失败不会留下已生效的内存任务。MT 重启不补跑过期一次性任务或错过的周期点。同一定时的上一条流程仍在运行或等待业务任务时，跳过本次触发并保留原因。
+业务通道串行执行；查询与页面有独立的串行读取通道。生命周期切换独占实例。每个公开动作只允许一个 queued/running/waiting 流程，重复手动请求返回 BUSY，自动触发记录跳过。
 
-耗时业务返回持久 `task.ref`；不要保存队列整数 ID。用 `tasks.get/list/items/cancel` 管理本插件任务。逐项结果按 `offset/limit` 分页，`nextOffset:-1` 表示结束。查询不会获得其他插件任务或全局原始日志。
+`ctx` 提供 plugin_id、instance_id、run_id、flow_id、source、package_hash、config_revision、config、files、event、reason、data_dir、work_dir。授权由宿主绑定到实际 RPC 调用，不能通过修改这些元数据扩大权限。
 
-```ts
-const run=mt.runtime.info();
-const task=mt.files.scan({rootId:'授权目录ID',path:'.',limit:1000,idempotencyKey:run.runId+':scan'});
-mt.tasks.wait({refs:[task.ref],completion:{action:'collect-report',input:{}}});
-return {message:'等待扫描完成'};
-```
+耗时宿主操作返回任务引用。调用 `ctx.mt.tasks.wait(refs=[...], completion={"action":"collect", "input":{...}})` 后立即返回。完成动作需在清单标记 `kind: "continuation"`，并用 `@continuation("collect")` 注册；它不能被页面、公开 API、定时或普通订阅调用。等待会释放业务通道，原公开动作名额仍被占用；续接保持原构建、配置、根流程与幂等信息。
 
-`tasks.wait` 只登记依赖和完成动作，随后必须返回；之后继续调用 SDK 会得到 `FLOW_WAITING`。工作进程退出，流程仍为 `waiting`。完成事件包含任务摘要，失败/取消任务也可进入完成动作，由作者决定如何展示部分结果。结果未知的任务不会自动续跑。动作链不能重复祖先动作，最大深度 16。
+## 定时与方案事件
 
-方案完成订阅使用 `events.subscribe`，同时需要单独选择方案事件授权。`triggers.events.create/update/list/pause/delete` 管理订阅，初次启用仍由用户操作。事件包含 `kind/profileId/status/total/completed/failed`，不含路径、原始错误、FF 数据或凭据。插件启动的业务不会产生方案订阅事件，避免同插件和跨插件循环；自身业务完成仍可使用 `tasks.wait`。每插件待投递方案事件最多 100 条，达到上限暂停订阅并显示原因。
+触发器使用清单声明的稳定 key；在初始化中用 `ctx.mt.triggers.schedules.upsert(...)` 或 `ctx.mt.triggers.events.upsert(...)` 登记。**schedule 参数是 `declarationKey`（Python `declaration_key`），event 参数是 `key`**。重复初始化复用登记并保留用户暂停状态，新增登记默认暂停。删除清单声明会清理对应触发器。
 
-未启动事件可重试投递，事件 ID 去重。安装修订、授权、订阅内容或父流程状态变化会取消旧投递。已经启动后中断的变更动作不重放。作者可用 `event.id` 建立自身幂等边界，但不能据此伪造宿主事件。
+定时定义由 MT 统一调度器保存，不在 KV 或 Python 进程里另建 Cron。五段 Cron 顺序为分钟、小时、日、月、星期；`Local` 指服务端时区。一次性任务使用 `kind: "once"`、带时区的 `at` 和空 `cron`。普通更新需要当前 revision；启用及恢复用户暂停由宿主界面操作。
 
-三个取消动作的含义不同：暂停定时停止未来触发；取消插件流程停止脚本及后续完成动作；取消业务任务停止对应队列任务。已经完成的文件操作不回滚。插件停用阻止新调用和回调，已交给 MT 的整理、STRM 任务继续由业务队列管理。
+方案完成订阅还需 `events.subscribe` 与具体方案事件授权，接收 `kind/profileId/status/total/completed/failed`，不返回路径、凭据或原始探测数据。插件发起的业务不会再次产生方案订阅事件，自己的任务完成用 `tasks.wait` 续接，避免形成循环。
+
+## 取消和运行预算
+
+取消先通知调用并撤销其后续 SDK 请求。协作取消的异步处理可保留 worker；同步处理拒绝退出或超过宽限时终止 worker 与子进程，其他受影响调用标记中断。暂停触发器、取消插件流程、取消宿主任务分别操作。
+
+宿主默认预算：导入 30 秒，配置校验 2 秒，初始化/停止各 10 秒，查询/页面各 10 秒，动作 30 分钟，内存 512 MiB，取消宽限 1 秒。管理员可设置 MT_PLUGIN_STARTUP_TIMEOUT、MT_PLUGIN_VALIDATION_TIMEOUT、MT_PLUGIN_LIFECYCLE_TIMEOUT、MT_PLUGIN_READ_TIMEOUT、MT_PLUGIN_ACTION_TIMEOUT、MT_PLUGIN_CANCEL_GRACE（如 10s、30m）和 MT_PLUGIN_MEMORY_MIB；插件清单不能取消这些限制。

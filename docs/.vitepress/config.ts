@@ -1,9 +1,15 @@
 import { defineConfig } from 'vitepress'
 
+// Python SDK downloads are static files, including in client-side navigation.
+process.env.VITE_EXTRA_EXTENSIONS = [process.env.VITE_EXTRA_EXTENSIONS, 'py'].filter(Boolean).join(',')
+
 export default defineConfig({
   title: 'MediaTidy',
   description: 'MediaTidy 官方文档 - 全自动媒体库管理工具',
   lang: 'zh-CN',
+  vite: {
+    define: { 'import.meta.env.VITE_EXTRA_EXTENSIONS': JSON.stringify(process.env.VITE_EXTRA_EXTENSIONS) },
+  },
   base: '/MediaTidy-Wiki/',
   head: [
     ['link', { rel: 'icon', href: '/MediaTidy-Wiki/favicon.ico' }],
@@ -34,17 +40,22 @@ export default defineConfig({
           ],
         },
         {
-          text: 'SDK v2 开发',
+          text: 'Python SDK v2 开发',
           items: [
             { text: '开发入门', link: '/plugins/getting-started' },
+            { text: '清单与数据契约', link: '/plugins/manifest' },
             { text: '完整能力清单', link: '/plugins/capabilities' },
             { text: '业务接口', link: '/plugins/business' },
-            { text: '权限与 FF 保护', link: '/plugins/permissions' },
-            { text: '定时、队列与完成事件', link: '/plugins/automation' },
+            { text: 'AI 自主识别示例', link: '/plugins/ai-organize' },
+            { text: '大批量工作流', link: '/plugins/workflow-capacity' },
+            { text: '权限与资源边界', link: '/plugins/permissions' },
+            { text: '生命周期、调度与续接', link: '/plugins/automation' },
             { text: '存储与数据管理', link: '/plugins/storage' },
-            { text: '页面协议与 Logo', link: '/plugins/ui' },
+            { text: '统一日志与诊断', link: '/plugins/logs' },
+            { text: 'Python 与 React 页面', link: '/plugins/ui' },
             { text: '开发工具与发布', link: '/plugins/tooling' },
-            { text: '验证记录与限制', link: '/plugins/validation' },
+            { text: '验收与排错', link: '/plugins/validation' },
+            { text: '实现对应关系', link: '/plugins/implementation-status' },
           ],
         },
       ],
