@@ -12,6 +12,72 @@ import tempfile
 import tomllib
 import zipfile
 
+REQUIRED = ("plugin.py", "plugin.json", "pyproject.toml", "uv.lock")
+EXCLUDED = {".git", ".venv", "__pycache__", "node_modules", ".mypy_cache", ".pytest_cache", ".env", "mt_plugin"}
+
+
+def include_paths(root: Path, project: dict) -> list[str]:
+    includes = project.get("tool", {}).get("mt-plugin", {}).get("include")
+    if includes is None:
+        return [*REQUIRED, *(name for name in ("ui", "prompts") if (root / name).exists())]
+    if not isinstance(includes, list) or not includes:
+        raise ValueError("pyproject.toml: tool.mt-plugin.include must be a non-empty list of file/directory paths")
+    for index, name in enumerate(includes):
+        location = f"pyproject.toml: tool.mt-plugin.include[{index}]"
+        if not isinstance(name, str) or not name.strip():
+            raise ValueError(f"{location}: must be a non-empty path")
+        if any(char in name for char in "*?[]{}"):
+            raise ValueError(f"{location}: glob patterns are not supported; use a directory such as 'core' or 'ui' (collected recursively)")
+        path = Path(name)
+        if path.is_absolute() or ".." in path.parts or "\\" in name or ":" in name or "\x00" in name:
+            raise ValueError(f"{location}: must be a relative path inside the project")
+        if any(part in EXCLUDED or part.startswith(".env") for part in path.parts) or name == "release.json":
+            raise ValueError(f"{location}: reserved development/host path cannot be included")
+    return includes
+
+
+def collect_files(root: Path, includes: list[str], manifest: dict) -> set[Path]:
+    root = root.resolve()
+    files: set[Path] = set()
+    for index, name in enumerate(includes):
+        location = f"pyproject.toml: tool.mt-plugin.include[{index}] ({name!r})"
+        path = root / name
+        if path.is_symlink() or any(parent.is_symlink() for parent in path.parents if parent != root and parent.is_relative_to(root)):
+            raise ValueError(f"{location}: symlinks cannot be packaged")
+        if not path.resolve().is_relative_to(root):
+            raise ValueError(f"{location}: path escapes the project")
+        if not path.exists():
+            raise ValueError(f"{location}: path does not exist")
+        candidates: list[Path] = [path] if path.is_file() else []
+        if path.is_dir():
+            for directory, subdirs, names in os.walk(path, followlinks=False):
+                # Excluded environment/cache trees are never traversed.
+                subdirs[:] = [d for d in subdirs if d not in EXCLUDED and not d.startswith(".env")]
+                for subdir in subdirs:
+                    if (Path(directory) / subdir).is_symlink():
+                        raise ValueError(f"{location}: symlink directory cannot be packaged")
+                candidates.extend(Path(directory) / file for file in names)
+        for candidate in candidates:
+            relative = candidate.relative_to(root)
+            if any(part in EXCLUDED or part.startswith(".env") for part in relative.parts) or candidate.suffix in (".pyc", ".pyo"):
+                continue
+            if candidate.is_symlink() or not candidate.resolve().is_relative_to(root):
+                raise ValueError(f"{location}: symlink file cannot be packaged")
+            if relative.as_posix() == "release.json":
+                raise ValueError(f"{location}: release.json is reserved for the host")
+            if candidate.is_file():
+                files.add(candidate)
+    for name in REQUIRED:
+        if root / name not in files:
+            raise ValueError(f"pyproject.toml: tool.mt-plugin.include: required package file excluded: {name}")
+    ui = manifest["ui"]
+    for name in [*ui.get("assets", []), ui.get("icon"), ui.get("entry")]:
+        if name and root / name not in files:
+            raise ValueError(f"plugin.json: ui: declared resource is not packaged: {name}")
+    if len(files) > 1000 or sum(file.stat().st_size for file in files) > 200 * 1024 * 1024:
+        raise ValueError("Unpacked package exceeds 1000 files or 200 MiB")
+    return files
+
 
 def check(root: Path, manifest: dict) -> None:
     assert sys.version_info[:2] == (3, 12), "Use Python 3.12"
@@ -35,9 +101,22 @@ def check(root: Path, manifest: dict) -> None:
     expected = {("continuation" if a.get("kind") == "continuation" else "action", a["id"]) for a in manifest["actions"]}
     expected |= {("query", q["id"]) for q in manifest.get("queries", [])}
     assert len(expected) == len(manifest["actions"]) + len(manifest.get("queries", [])), "Duplicate declaration"
-    assert expected == registered, f"Manifest/handler mismatch: {expected ^ registered}"
-    from .schema import validate_schema_definition
+    if expected != registered:
+        from .worker import HandlerMismatch
+        raise HandlerMismatch(expected, registered)
+    from .schema import validate_schema_definition, validate
     validate_schema_definition(manifest.get("configSchema"))
+    config_schema = manifest.get("configSchema")
+    if config_schema and config_schema.get("type") == "object":
+        for index, field in enumerate(manifest.get("config", [])):
+            key = field["key"]
+            if key not in config_schema.get("properties", {}) and not config_schema.get("additionalProperties", False):
+                raise ValueError(f"plugin.json: config[{index}].key: {key!r} is not declared in configSchema.properties")
+            if "default" in field:
+                try:
+                    validate(config_schema.get("properties", {}).get(key), field["default"])
+                except ValueError as error:
+                    raise ValueError(f"plugin.json: config[{index}].default: does not satisfy configSchema.properties.{key}") from error
     for item in [*manifest["actions"], *manifest.get("queries", [])]:
         validate_schema_definition(item.get("inputSchema"))
         validate_schema_definition(item.get("outputSchema"))
@@ -51,6 +130,8 @@ def main() -> None:
     args = parser.parse_args()
     root = args.root.resolve()
     manifest = json.loads((root / "plugin.json").read_text("utf-8"))
+    project = tomllib.loads((root / "pyproject.toml").read_text("utf-8"))
+    includes = include_paths(root, project)
     check(root, manifest)
     uv = shutil.which("uv")
     assert uv, "Install uv==0.6.7 for reproducible dependency locking"
@@ -76,33 +157,10 @@ def main() -> None:
         assert major > 22 or major == 22 and minor >= 12, "Node 22.12+ required"
         subprocess.run([npm, "run", "build"], cwd=root / "frontend", check=True)
         assert (root / manifest["ui"]["entry"]).is_file(), "React build must produce ui/remoteEntry.js"
+    files = collect_files(root, includes, manifest)
     if args.command == "check":
         print("Entry, schemas, types and dependency lock checked")
         return
-    project = tomllib.loads((root / "pyproject.toml").read_text("utf-8"))
-    includes = project.get("tool", {}).get("mt-plugin", {}).get("include", ["plugin.py", "plugin.json", "pyproject.toml", "uv.lock", "ui", "prompts"])
-    files: set[Path] = set()
-    excluded = {".git", ".venv", "__pycache__", "node_modules", ".mypy_cache", ".pytest_cache", ".env"}
-    for name in includes:
-        path = root / name
-        assert not path.is_symlink(), "Symlinks cannot be packaged"
-        path = path.resolve()
-        assert path.is_relative_to(root), "Includes must stay inside project"
-        candidates: list[Path] = [path] if path.is_file() else []
-        if path.is_dir():
-            for directory, subdirs, names in os.walk(path, followlinks=False):
-                for subdir in subdirs:
-                    assert not (Path(directory) / subdir).is_symlink(), "Symlinks cannot be packaged"
-                subdirs[:] = [d for d in subdirs if d not in excluded]
-                candidates.extend(Path(directory) / file for file in names)
-        for candidate in candidates:
-            relative = candidate.relative_to(root)
-            if candidate.is_file() and not any(part in excluded or part.startswith(".env") for part in relative.parts):
-                assert not candidate.is_symlink(), "Symlinks cannot be packaged"
-                files.add(candidate)
-    required = {root / name for name in ("plugin.py", "plugin.json", "pyproject.toml", "uv.lock")}
-    assert required <= files, "Required package files excluded"
-    assert len(files) <= 1000 and sum(file.stat().st_size for file in files) <= 200 * 1024 * 1024, "Unpacked package exceeds limits"
     output = (args.output or root / "dist" / f'{manifest["id"]}-{manifest["version"]}.zip').resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile(dir=output.parent, prefix="mt-pack-", suffix=".zip", delete=False) as temp:

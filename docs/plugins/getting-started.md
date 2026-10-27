@@ -9,6 +9,7 @@
 | 目录扫描与任务续接 | `plugin-sdk/starter/` | `assets/plugin-sdk/starter/` |
 | Pillow 图片处理 | `plugin-sdk/examples/pillow/` | `assets/plugin-sdk/examples/pillow/` |
 | React 交互页面 | `plugin-sdk/examples/react/` | `assets/plugin-sdk/examples/react/` |
+| Table 行内操作与分键分页 | `plugin-sdk/examples/storage-table/` | `assets/plugin-sdk/examples/storage-table/` |
 
 把所需模板复制到自己的工作目录，修改 `plugin.json` 的 `id/name/author/description`。保留 `entry: "plugin.py:Plugin"`、`sdkVersion: "2"` 和 UI v2 声明。React 模板的本地前端依赖需要一起复制或重新指向公开前端 SDK，见 [UI](ui.md)。
 

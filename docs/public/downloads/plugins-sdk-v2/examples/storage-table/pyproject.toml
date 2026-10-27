@@ -1,0 +1,11 @@
+[project]
+name = "mt-storage-table-example"
+version = "1.0.0"
+requires-python = ">=3.12,<3.13"
+dependencies = []
+
+[tool.uv]
+package = false
+
+[tool.mt-plugin]
+include = ["plugin.py", "plugin.json", "pyproject.toml", "uv.lock"]

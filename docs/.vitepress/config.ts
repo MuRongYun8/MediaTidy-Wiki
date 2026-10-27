@@ -1,7 +1,7 @@
 import { defineConfig } from 'vitepress'
 
 // Python SDK downloads are static files, including in client-side navigation.
-process.env.VITE_EXTRA_EXTENSIONS = [process.env.VITE_EXTRA_EXTENSIONS, 'py'].filter(Boolean).join(',')
+process.env.VITE_EXTRA_EXTENSIONS = [process.env.VITE_EXTRA_EXTENSIONS, 'py', 'toml', 'lock'].filter(Boolean).join(',')
 
 export default defineConfig({
   title: 'MediaTidy',
@@ -53,6 +53,7 @@ export default defineConfig({
             { text: '存储与数据管理', link: '/plugins/storage' },
             { text: '统一日志与诊断', link: '/plugins/logs' },
             { text: 'Python 与 React 页面', link: '/plugins/ui' },
+            { text: '分键分页与行内操作示例', link: '/plugins/storage-table' },
             { text: '开发工具与发布', link: '/plugins/tooling' },
             { text: '验收与排错', link: '/plugins/validation' },
             { text: '实现对应关系', link: '/plugins/implementation-status' },

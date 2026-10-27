@@ -145,7 +145,8 @@
       "onClick": "events",
       "variant": "variant",
       "visible": "value",
-      "disabled": "value"
+      "disabled": "value",
+      "size": "buttonSize"
     },
     "Repeat": {
       "source": "value",
@@ -284,6 +285,12 @@
       20,
       50,
       100
+    ],
+    "buttonSize": [
+      "default",
+      "sm",
+      "lg",
+      "icon"
     ]
   },
   "operations": [

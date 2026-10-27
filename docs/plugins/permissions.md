@@ -16,6 +16,7 @@
 | HTTP 与通知 | 授权目标/路径/方法，或通知通道 |
 | 原生 AI 搜索 | `ai.chat` 与 `ai.web.search`，以及宿主 AI 联网设置 |
 | 方案事件 | `events.subscribe` 及方案事件资源 |
+| 本地 FF 缓存存在性 | 单独授权 `ffprobe.cache.exists`；按完整 SHA1 仅返回布尔值，不返回内容 |
 
 SDK 目录授权区分 read/write/delete；文件引用绑定实例与版本，路径必须位于授权根内。宿主数据库、配置、密钥、缓存和日志不属于可授权媒体文件。媒体、AI、HTTP、通知、整理和 STRM 分别授权，前端隐藏按钮不能代替后端校验。
 
@@ -28,6 +29,8 @@ SDK 目录授权区分 read/write/delete；文件引用绑定实例与版本，�
 ## FF 业务评分边界
 
 `quality.prepare/evaluate/evaluate_batch/compare/upgrade` 只接受授权文件与方案，返回评分、资格、完整状态、固定原因和比较结论，不导出远程 FF 数据、任意 SHA1 查询、原始探测字段或宿主凭据。评分计量按实例累计，不能靠清空 KV 重置。
+
+独立的 `ffprobe.cache_exists` 允许查询任意完整 SHA1 在本地整理 FF 缓存中是否有记录，必须单独声明并获得 `ffprobe.cache.exists` 授权。其返回值只有布尔值，不读取或导出探测详情，也不访问远程 FF 服务；旧插件更新时不会自动获得此权限。用法与存在性的含义见[业务接口](business.md#查询本地-ff-缓存是否存在)。
 
 停用、授权撤销或更新使旧 worker 后续 SDK 调用失效；新增权限需重新授权。取消插件流程与取消已提交的宿主任务分别操作。
 

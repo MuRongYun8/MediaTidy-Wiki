@@ -79,6 +79,13 @@ class LogHandler(logging.Handler):
             pass
 
 
+class HandlerMismatch(ValueError):
+    def __init__(self, declared: set, registered: set):
+        self.missing = sorted(declared - registered)
+        self.unexpected = sorted(registered - declared)
+        super().__init__(f"Manifest/handler mismatch: missing={self.missing}, unexpected={self.unexpected}")
+
+
 def load_plugin(root: Path, manifest: dict) -> tuple[Any, dict[tuple[str, str], Any]]:
     sys.path.append(str(root))
     spec = importlib.util.spec_from_file_location("_mt_author_plugin", root / "plugin.py")
@@ -101,7 +108,7 @@ def load_plugin(root: Path, manifest: dict) -> tuple[Any, dict[tuple[str, str], 
     declared = {("continuation" if a.get("kind") == "continuation" else "action", a["id"]) for a in manifest["actions"]}
     declared |= {("query", q["id"]) for q in manifest.get("queries", [])}
     if set(handlers) != declared:
-        raise ValueError(f"Manifest/handler mismatch: declared={declared}, registered={set(handlers)}")
+        raise HandlerMismatch(declared, set(handlers))
     return plugin, handlers
 
 
@@ -203,6 +210,11 @@ def main() -> None:
     transport.send({"type": "hello", "id": boot["token"]})
     try:
         asyncio.run(serve(transport, boot))
+    except HandlerMismatch as error:
+        transport.send({"type": "fatal", "error": "插件声明与 handler 不一致",
+                        "handlerMismatch": {"missing": error.missing, "unexpected": error.unexpected},
+                        "diagnostic": str(error)[:32000]})
+        raise
     except BaseException:
         transport.send({"type": "fatal", "error": "插件导入失败", "diagnostic": ("".join(traceback.format_exception_only(sys.exception())) + traceback.format_exc())[:32000]})
         raise

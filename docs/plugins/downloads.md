@@ -4,6 +4,8 @@
 
 也可在 MT「插件中心」点击「下载开发 Skill 完整包」。该入口使用登录后的 `GET /api/plugins/development/skill.zip`，返回随主程序打包的资源；旧主程序内置的包可能早于 Wiki，请同时核对宿主支持的能力。
 
+当前开发包已同步本地 FF 缓存存在性查询 `ffprobe.cache_exists`、`Button.size`、安装与打包诊断，以及 Table 行内操作和分键分页示例。前两项新增能力需要包含对应实现的宿主；下载新版 Skill 不会升级正在运行的 MT。
+
 ## 包中包含什么
 
 ```text
@@ -19,6 +21,7 @@ mediatidy-plugin-development/
     ├── plugin-sdk/starter/
     ├── plugin-sdk/examples/pillow/
     ├── plugin-sdk/examples/react/
+    ├── plugin-sdk/examples/storage-table/
     └── plugin-frontend-sdk/   React 公开类型与宿主接口
 ```
 

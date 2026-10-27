@@ -1,0 +1,70 @@
+{
+  "id": "example.storage-table",
+  "name": "分页结果与行内操作示例",
+  "version": "1.0.0",
+  "sdkVersion": "2",
+  "entry": "plugin.py:Plugin",
+  "description": "使用合成数据演示分键存储、游标分页和行内按钮，不修改媒体文件。",
+  "permissions": [
+    "storage"
+  ],
+  "actions": [
+    {
+      "id": "scan",
+      "label": "生成演示结果",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500
+          }
+        },
+        "required": [
+          "count"
+        ]
+      },
+      "outputSchema": {}
+    },
+    {
+      "id": "decide",
+      "label": "标记保留",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "outputSchema": {}
+    }
+  ],
+  "queries": [
+    {
+      "id": "summary",
+      "label": "分页结果",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "string",
+            "maxLength": 256
+          }
+        },
+        "required": []
+      },
+      "outputSchema": {}
+    }
+  ],
+  "ui": {
+    "mode": "python",
+    "version": "2"
+  }
+}

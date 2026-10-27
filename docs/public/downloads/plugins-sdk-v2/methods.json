@@ -2,6 +2,33 @@
   "sdkVersion": "2",
   "methods": [
     {
+      "name": "ffprobe.cacheExists",
+      "permission": "ffprobe.cache.exists",
+      "limit": 500,
+      "input": {
+        "type": "object",
+        "properties": {
+          "sha1": {
+            "type": "string",
+            "minLength": 40,
+            "maxLength": 40
+          }
+        },
+        "required": [
+          "sha1"
+        ],
+        "additionalProperties": false
+      },
+      "output": {
+        "type": "boolean"
+      },
+      "contexts": [
+        "action",
+        "query",
+        "page"
+      ]
+    },
+    {
       "name": "ai.capabilities",
       "permission": "",
       "limit": 500,

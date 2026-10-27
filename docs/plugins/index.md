@@ -2,7 +2,7 @@
 
 MediaTidy 插件通过 Python 实现业务，使用宿主的文件、媒体、整理、STRM、AI、任务和存储能力。每个启用实例拥有常驻 Python 对象；页面可以由 Python 返回 MT UI 组件，也可以采用 React 模块联邦。
 
-本文对应当前仓库的 Python SDK `2.0.0`、`sdkVersion: "2"` 和 `ui.version: "2"`，核对日期为 2026-10-26。SDK 包版本不等于主应用版本；同为 v2 的旧 Goja 插件也不能直接运行在当前 Python 运行时。
+本文对应当前仓库的 Python SDK `2.0.0`、`sdkVersion: "2"` 和 `ui.version: "2"`，核对日期为 2026-10-27。SDK 包版本不等于主应用版本；同为 v2 的旧 Goja 插件也不能直接运行在当前 Python 运行时。
 
 ## 从这里开始
 

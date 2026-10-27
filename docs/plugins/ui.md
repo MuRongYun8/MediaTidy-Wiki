@@ -29,6 +29,39 @@ onClick 支持 set、invoke、query 和 host 事件。host 支持 saveConfig、r
 
 单页最多 256 KiB、500 个组件、深度 12，表格最多 12 列。图片可使用清单声明的 UI 资源路径，或 `file:<宿主文件引用>`；后者只预览授权的 PNG、JPEG、WebP，最多 8 MiB。禁止任意网页地址。组件属性见 [注册表](/downloads/plugins-sdk-v2/ui-registry.json)。
 
+### 校验诊断与按钮尺寸
+
+未知组件、属性、事件和绑定仍会被拒绝。错误会包含具体路径，例如 `content[0].props.columns[1].cells[0].props.size`，以及允许的属性或枚举值；修正后点击宿主“刷新页面”重试。插件页面失败时，宿主设置、授权、日志和任务入口仍可使用。
+
+`Button.size` 支持 `default`、`sm`、`lg`、`icon`，默认 `default`；表格行内按钮可用 `sm`。该属性需要包含插件开发者反馈修复的宿主版本，早期 SDK v2 宿主会拒绝它。`icon` 使用紧凑方形按钮，仍应提供可读的 `label`。
+
+### Table 行内操作
+
+列定义使用 `label`、可选的 `field` 和必填的 `cells`。普通文本列写 `cells: []`；操作列把组件放入 `cells`。不使用其他框架的 `title`、`dataIndex` 或 `key`。
+
+```python
+from mt_plugin import ui
+
+def get_page(ctx):
+    return ui.page(
+        ui.Table(source=ui.ref("query.summary.data.groups"), rowKey="id", columns=[
+            {"label": "作品名称", "field": "name", "cells": []},
+            {"label": "操作", "cells": [ui.Button(
+                label="标记保留", size="sm", variant="outline",
+                onClick=[{"type": "invoke", "actionId": "decide",
+                          "input": {"id": ui.ref("row.id")}}],
+            )]},
+        ]),
+        queries=[{"id": "summary", "name": "summary", "input": {}}],
+    )
+```
+
+查询响应由宿主包装为 `{data, loading, error}`，因此数据从 `query.summary.data` 读取。按钮所在行通过只读 `row` 传入事件，`row.id` 不需要复制到全局 state。
+
+清单必须声明公开动作 `decide`，其 `inputSchema` 包含必填字符串 `id`，并声明查询 `summary`；Python 中分别注册 `@action("decide")` 和 `@query("summary")`。包含清单、输入模型、分页查询及修订检查的[完整示例](/downloads/plugins-sdk-v2/examples/storage-table/plugin.py)可直接打包运行，安装说明见[示例 README](/plugins/storage-table)。
+
+`invoke` 等待动作入队，不等待业务执行结束；紧接着触发 `query` 可能读到旧结果。宿主会在当前运行结束后刷新查询，也可以提供手动刷新按钮。删除等实际文件操作仍须通过对应授权能力实现，此示例的“保留”只修改演示结果标记。
+
 ## React 页面
 
 参考 `plugin-sdk/examples/react`；Skill 中对应 `assets/plugin-sdk/examples/react`。只有这类作者需要 Node 22.12+。通过 `@module-federation/vite` 构建并导出 `./Page`，发布包包括 `ui/remoteEntry.js`、模块、CSS 和资源。宿主使用配套 federation runtime 按实例与构建哈希加载。

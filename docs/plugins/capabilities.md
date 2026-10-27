@@ -6,6 +6,7 @@
 
 | Python 方法 | 权限 | 每运行上限 | 允许通道 |
 |---|---|---:|---|
+| `ffprobe.cache_exists` | ffprobe.cache.exists | 500 | action, query, page |
 | `ai.capabilities` | — | 500 | action |
 | `ai.chat` | ai.chat | 78 | action |
 | `ai.complete` | ai.complete | 32 | action |

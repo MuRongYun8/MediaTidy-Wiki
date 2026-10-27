@@ -20,6 +20,30 @@
 
 默认每实例 32 MiB、10,000 个键，单值 256 KiB，单次 batch 1 MiB。实际用量及限额查 `storage.usage`，不要假设管理员未调整策略。大量逐文件结果分键保存、查询分页，不能把全部结果写成一个大对象。
 
+限制按实际传输的 JSON UTF-8 字节计算，包含引号、转义及字段名，不按字符数或作品数量计算。超过 256 KiB 的写入明确报错，消息包含操作位置、实际字节数和上限；失败不会覆盖旧值。成功写入的单值超过 200 KiB 时，宿主在插件日志提示接近上限，同一次插件调用最多提醒一次，不记录数据内容。
+
+### 扫描结果分键与游标分页
+
+完整的[分键分页示例](/downloads/plugins-sdk-v2/examples/storage-table/plugin.py)使用合成查重结果，不访问云盘或修改媒体：
+
+- `currentScan` 只保存正在展示的扫描 ID。
+- `scans/<runId>/summary` 保存状态和计数；状态为 running、done 或 failed。
+- `scans/<runId>/groups/<序号>` 每个键保存一组结果，避免一份 JSON 随扫描持续增长。
+- 查询用 `storage.list(prefix=..., cursor=..., limit=20, values=True)`，返回条数可能受 1 MiB 返回容量限制，必须使用返回的 `nextCursor` 继续，不自行计算偏移。
+
+```python
+page = ctx.mt.storage.list(prefix=f"scans/{scan_id}/groups/",
+                           cursor=cursor, limit=20, values=True)
+return {"groups": [entry["value"] for entry in page["items"]],
+        "nextCursor": page.get("nextCursor", "")}
+```
+
+先写 running 摘要，再逐组写入，全部成功才标记 done。失败要保留已经写入的数据、尽力记录 failed 并抛出原异常；取消或容量耗尽也可能阻止失败标记，因此 running 不等于成功或零结果，页面应提示检查宿主运行状态。运行结果只返回计数和扫描 ID，不复制全部组数据。
+
+对同一结果的修改先 `get` 再使用返回的 `revision` 作为 `expectedRevision`，避免覆盖并发编辑。不同扫描使用不同前缀；旧扫描游标不能继续读取新扫描。
+
+分键不会绕过实例总容量、键数、调用次数或单值限制。单组仍过大时，应继续按版本拆分。示例保留旧数据便于排错，反复运行前可在宿主数据管理中清理；真实插件应仅清理已结束且不再展示的扫描，逐页列出旧前缀的键，再按最多 100 项的 batch 删除，最后删除摘要。
+
 ## 更新、备份与恢复
 
 同来源更新保留安装实例和业务数据；不同来源的同名插件不能继承权限及空间。业务数据自行记录格式版本，回退代码不等于回退数据；遇到不支持的格式停止写入并提示恢复备份或迁移。

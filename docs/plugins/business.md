@@ -13,6 +13,7 @@
 | 整理 | `organize.run` 自动方案；`organize.manual.run` 指定作品直接执行；`manual.prepare/prepare_batch` 草稿 |
 | STRM | 方案读取、预览、生成、核验和清理；核验与清理不可当成只读查询 |
 | 质量评分 | `quality.prepare/evaluate/evaluate_batch/compare/upgrade`；仅业务结论，不导出 FF 探测明细 |
+| 本地 FF 缓存 | `ffprobe.cache_exists`；按完整 SHA1 仅查询本地缓存记录是否存在 |
 | AI | `ai.capabilities/complete/chat/web.search`；使用用户配置的服务，模型输出不产生权限 |
 | 外部通信 | `http.request` 按目标/路径/方法授权，`notification.send` 按通知通道授权 |
 | 持久数据与自动化 | `storage`、`tasks`、`triggers`，见各专题 |
@@ -24,6 +25,19 @@
 选择器返回文件或目录描述到 `ctx.files`，选择目录不会隐式展开全部文件。逐页浏览用 `files.list`；递归扫描用 `files.scan`，等待扫描任务后分页读取 `tasks.items`。列表和任务明细单页最多 100，完整工作流最多 500，底层扫描另有容量限制，见[大批量流程](workflow-capacity.md)。
 
 文件变更默认不覆盖；跨目录操作检查源与目标授权及文件版本。根目录不可删除，递归删除须显式指定。宿主遵循路径路由、限流和取消语义；不支持的云盘操作返回 `UNSUPPORTED`，不要通过直接拼接路径绕开检查。
+
+## 查询本地 FF 缓存是否存在
+
+清单声明 `"permissions": ["ffprobe.cache.exists"]`，用户单独授予该能力后，可在 action、query、page 通道调用；每次调用一个 SHA1，每运行最多 500 次。此方法需要包含该能力的宿主版本，旧宿主不能调用。
+
+```python
+exists = ctx.mt.ffprobe.cache_exists(sha1="0123456789abcdef0123456789abcdef01234567")
+# 异步调用：exists = await ctx.amt.ffprobe.cache_exists(sha1=sha1)
+```
+
+返回 Python `bool`（JSON `true/false`），不返回 FF 数据、文件名、路径或其他缓存字段。SHA1 必须为完整的 40 位十六进制字符串，大小写均可；不支持前缀、批量、列表或导出。该授权用于查询整个本地整理 FF 缓存的存在性，不依赖文件或整理方案授权。
+
+这里只判断本地数据库是否有记录；关闭整理缓存使用后已有记录仍可查到。`True` 不保证探测数据完整、版本兼容或对应文件仍存在。查询不会访问远程 FF 缓存、运行 ffprobe、回填数据或更新缓存时间。查询失败抛出 SDK 错误，不要将错误捕获后当成 `False`。
 
 ## 三种整理路线
 
