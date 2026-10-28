@@ -2,6 +2,130 @@
   "sdkVersion": "2",
   "methods": [
     {
+      "name": "emby.servers.list",
+      "permission": "emby.api",
+      "limit": 500,
+      "input": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "output": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "embyUrl": {
+              "type": "string"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "embyServerId": {
+              "type": "string"
+            },
+            "pathMappings": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "localPrefix": {
+                    "type": "string"
+                  },
+                  "embyPrefix": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "localPrefix",
+                  "embyPrefix"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "hasApiKey": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "embyUrl",
+            "enabled",
+            "embyServerId",
+            "pathMappings",
+            "hasApiKey"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "contexts": [
+        "action",
+        "query",
+        "page"
+      ]
+    },
+    {
+      "name": "emby.request",
+      "permission": "emby.api",
+      "limit": 500,
+      "input": {
+        "type": "object",
+        "properties": {
+          "serverId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "method": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "query": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "json": {},
+          "timeoutMs": {
+            "type": "integer",
+            "minimum": 500,
+            "maximum": 60000
+          }
+        },
+        "required": [
+          "serverId",
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "integer"
+          },
+          "data": {}
+        },
+        "required": [
+          "status",
+          "data"
+        ],
+        "additionalProperties": false
+      },
+      "contexts": [
+        "action"
+      ]
+    },
+    {
       "name": "ffprobe.cacheExists",
       "permission": "ffprobe.cache.exists",
       "limit": 500,
@@ -684,6 +808,9 @@
               },
               "retryable": {
                 "type": "boolean"
+              },
+              "path": {
+                "type": "string"
               }
             },
             "required": [
@@ -806,6 +933,9 @@
               },
               "retryable": {
                 "type": "boolean"
+              },
+              "path": {
+                "type": "string"
               }
             },
             "required": [
@@ -928,6 +1058,9 @@
               },
               "retryable": {
                 "type": "boolean"
+              },
+              "path": {
+                "type": "string"
               }
             },
             "required": [
@@ -1172,6 +1305,9 @@
               },
               "retryable": {
                 "type": "boolean"
+              },
+              "path": {
+                "type": "string"
               }
             },
             "required": [
@@ -1294,6 +1430,9 @@
               },
               "retryable": {
                 "type": "boolean"
+              },
+              "path": {
+                "type": "string"
               }
             },
             "required": [
@@ -1454,6 +1593,9 @@
               },
               "retryable": {
                 "type": "boolean"
+              },
+              "path": {
+                "type": "string"
               }
             },
             "required": [
@@ -1615,6 +1757,9 @@
               },
               "retryable": {
                 "type": "boolean"
+              },
+              "path": {
+                "type": "string"
               }
             },
             "required": [
@@ -1723,6 +1868,9 @@
               },
               "retryable": {
                 "type": "boolean"
+              },
+              "path": {
+                "type": "string"
               }
             },
             "required": [
@@ -1962,6 +2110,9 @@
               },
               "retryable": {
                 "type": "boolean"
+              },
+              "path": {
+                "type": "string"
               }
             },
             "required": [
@@ -2988,6 +3139,9 @@
               },
               "retryable": {
                 "type": "boolean"
+              },
+              "path": {
+                "type": "string"
               }
             },
             "required": [
@@ -3347,6 +3501,9 @@
               },
               "retryable": {
                 "type": "boolean"
+              },
+              "path": {
+                "type": "string"
               }
             },
             "required": [
@@ -3589,6 +3746,9 @@
                     },
                     "retryable": {
                       "type": "boolean"
+                    },
+                    "path": {
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -3691,6 +3851,9 @@
               },
               "retryable": {
                 "type": "boolean"
+              },
+              "path": {
+                "type": "string"
               }
             },
             "required": [
@@ -4502,6 +4665,12 @@
               "type": "number"
             }
           },
+          "embyServerIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "notificationChannelIds": {
             "type": "array",
             "items": {
@@ -4539,6 +4708,7 @@
           "organizeProfileIds",
           "strmProfileIds",
           "notificationChannelIds",
+          "embyServerIds",
           "http"
         ],
         "additionalProperties": false
@@ -5127,6 +5297,9 @@
               },
               "retryable": {
                 "type": "boolean"
+              },
+              "path": {
+                "type": "string"
               }
             },
             "required": [
@@ -5222,6 +5395,9 @@
               },
               "retryable": {
                 "type": "boolean"
+              },
+              "path": {
+                "type": "string"
               }
             },
             "required": [
@@ -5581,6 +5757,9 @@
               },
               "retryable": {
                 "type": "boolean"
+              },
+              "path": {
+                "type": "string"
               }
             },
             "required": [
@@ -5676,6 +5855,9 @@
               },
               "retryable": {
                 "type": "boolean"
+              },
+              "path": {
+                "type": "string"
               }
             },
             "required": [
@@ -5888,6 +6070,9 @@
               },
               "retryable": {
                 "type": "boolean"
+              },
+              "path": {
+                "type": "string"
               }
             },
             "required": [
@@ -6032,6 +6217,9 @@
                     },
                     "retryable": {
                       "type": "boolean"
+                    },
+                    "path": {
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -6132,6 +6320,9 @@
                     },
                     "retryable": {
                       "type": "boolean"
+                    },
+                    "path": {
+                      "type": "string"
                     }
                   },
                   "required": [

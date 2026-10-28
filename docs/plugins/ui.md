@@ -21,6 +21,33 @@ def get_page(ctx):
 
 `input`、`config`、`state` 是独立可写空间；config 只是草稿，必须显式保存。`plugin`、`run`、`flow`、`stats`、`query.<id>` 和 `row` 只读。`ui.ref(path)` 绑定值，`ui.expr(op, *args)` 使用有界受控表达式；visible/disabled 可条件绑定，Repeat 使用数据循环。
 
+### 默认值、目录与执行反馈
+
+表单默认值放在 `ui.page(..., state={...})` 中；Input 继续使用 `bind`，不需要额外的 `value` 属性。读取 Storage 时先判断 `found`，不要把用户保存的 `0`、`False` 或空字符串误当作缺失值。
+
+```python
+from mt_plugin import ui
+
+def get_page(ctx):
+    return ui.page(
+        ui.Input(label="分差阈值", type="number", bind="state.threshold"),
+        ui.DirectoryPicker(label="扫描目录", bind="state.source"),
+        ui.DirectoryPicker(label="转移目标", bind="state.target", access="write"),
+        ui.Button(label="开始扫描", onClick=[{
+            "type": "invoke", "actionId": "scan",
+            "input": {"source": ui.ref("state.source"), "threshold": ui.ref("state.threshold")},
+        }], loading=ui.expr("or", ui.expr("eq", ui.ref("run.status"), "queued"),
+                           ui.expr("eq", ui.ref("run.status"), "running"))),
+        state={"threshold": 10, "source": None, "target": None},
+    )
+```
+
+`scan` 需在清单声明，并使用 inputSchema 接收这些字段。目录选择结果为 `{rootId, path}` 或 `null`，`path` 相对授权根，根目录本身为 `.`。组件只浏览已授权且可读取的现存目录；`access="write"` 还要求 `files.write` 能力与该根的写入授权。确认时再次检查目录存在性与当前权限。取消不修改绑定值；清除写入 `null`；不创建目录或返回宿主绝对路径。
+
+目录应通过 `ctx.mt.files.roots()` 动态发现，由用户选择。不要硬编码 NAS 绝对路径，也不要假定第一个根就是 STRM 输出目录。没有授权根时，引导用户到宿主「设置与授权」配置。
+
+Button 点击请求期间自动加载并禁用，提交锁覆盖整组事件。`loading` 接受布尔值或表达式，可绑定长期任务状态；加载结束不代表后台业务完成。失败后恢复交互，业务并发限制仍由宿主执行。`DirectoryPicker` 与 `Button.loading` 需要包含本次交互优化的宿主，早期 SDK v2 宿主会拒绝未知组件或属性。
+
 单选 `Select` 的选项可包含 `description`；提供说明时渲染为可点击的选项卡片，值仍使用原始 `value`（包括布尔值），未提供说明时保留下拉选择。
 
 onClick 支持 set、invoke、query 和 host 事件。host 支持 saveConfig、refreshRun、refreshPage、cancelRun、newRun、openLogs、reviewDrafts。普通输入只更新前端状态；数据通过查询与运行结果更新，页面结构由“刷新页面”显式重新读取 Python。

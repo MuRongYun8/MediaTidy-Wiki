@@ -4,7 +4,14 @@
 
 也可在 MT「插件中心」点击「下载开发 Skill 完整包」。该入口使用登录后的 `GET /api/plugins/development/skill.zip`，返回随主程序打包的资源；旧主程序内置的包可能早于 Wiki，请同时核对宿主支持的能力。
 
-当前开发包已同步本地 FF 缓存存在性查询 `ffprobe.cache_exists`、`Button.size`、安装与打包诊断，以及 Table 行内操作和分键分页示例。前两项新增能力需要包含对应实现的宿主；下载新版 Skill 不会升级正在运行的 MT。
+当前开发包保持 SDK 2.0.0，已同步以下能力和示例：
+
+- [Emby 配置与通用 API](emby.md)：`emby.servers.list()`、`emby.request()`，包含同步、异步接口与服务器授权说明。
+- [目录选择与按钮反馈](ui.md)：`ui.DirectoryPicker`、读写目录授权、`Button.loading` 绑定及页面 `state` 默认值。
+- [配置修复与错误诊断](user-guide.md)：Schema 配置 JSON 编辑、升级授权变化、异常安装记录提示及带字段位置的错误。
+- [存储初始化](storage.md)只补缺失值，以及 [`tasks.wait` 登记后立即返回](automation.md)的用法。
+
+此前的本地 FF 缓存存在性查询 `ffprobe.cache_exists`、`Button.size`、Table 行内操作和分键分页示例继续包含在包内。新增接口和组件需要目标宿主包含对应实现；下载新版 Skill 不会升级正在运行的 MT。旧宿主尚未支持时，请按其能力选择接口和组件。
 
 ## 包中包含什么
 

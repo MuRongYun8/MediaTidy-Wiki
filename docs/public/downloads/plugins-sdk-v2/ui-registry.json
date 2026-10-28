@@ -146,7 +146,8 @@
       "variant": "variant",
       "visible": "value",
       "disabled": "value",
-      "size": "buttonSize"
+      "size": "buttonSize",
+      "loading": "value"
     },
     "Repeat": {
       "source": "value",
@@ -225,6 +226,13 @@
     "DataManagement": {
       "visible": "value",
       "disabled": "value"
+    },
+    "DirectoryPicker": {
+      "label": "value",
+      "bind": "editable",
+      "access": "directoryAccess",
+      "visible": "value",
+      "disabled": "value"
     }
   },
   "enums": {
@@ -291,6 +299,10 @@
       "sm",
       "lg",
       "icon"
+    ],
+    "directoryAccess": [
+      "read",
+      "write"
     ]
   },
   "operations": [

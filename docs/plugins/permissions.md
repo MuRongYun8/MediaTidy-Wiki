@@ -14,6 +14,7 @@
 | 自动整理 | `organize.run` 及自动执行方案授权 |
 | STRM | 读取、执行、清理分别授权，并限定方案 |
 | HTTP 与通知 | 授权目标/路径/方法，或通知通道 |
+| Emby 配置与 API | 统一 `emby.api` 能力及具体服务器授权；可查询、修改、删除，MT 自动鉴权，不返回 API Key |
 | 原生 AI 搜索 | `ai.chat` 与 `ai.web.search`，以及宿主 AI 联网设置 |
 | 方案事件 | `events.subscribe` 及方案事件资源 |
 | 本地 FF 缓存存在性 | 单独授权 `ffprobe.cache.exists`；按完整 SHA1 仅返回布尔值，不返回内容 |
@@ -23,6 +24,8 @@ SDK 目录授权区分 read/write/delete；文件引用绑定实例与版本，�
 查询和页面的 SDK 通道只允许只读能力；生命周期只允许日志、自身 KV、授权信息、声明密钥及触发器管理；配置校验不允许 SDK 业务调用。这是宿主接口边界，作者也必须遵守只读与纯校验契约。
 
 具体方法能否用于 action/query/init/stop/page，以[能力表](capabilities.md)为准；例如 AI 可用性查询也不能假设可放进页面通道。
+
+Emby 只提供 `emby.servers.list` 与 `emby.request` 两个方法。服务器授权为 `embyServerIds`，旧数据默认空数组；新增能力需明确授权。列表可用于页面和查询，通用请求只用于动作。配置变化实时生效，停用、删除或撤销授权后拒绝请求。详见 [Emby 配置与通用 API](emby.md)。
 
 授权目录中的 STRM、NFO、字幕等按普通文件处理，读取 STRM 可能得到播放地址。授予文件读取和外部服务能力后，不能宣称插件无法传播已读取内容。
 

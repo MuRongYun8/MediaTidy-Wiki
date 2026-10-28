@@ -53,7 +53,7 @@ class Transport:
         if future and not future.done():
             if frame.get("error"):
                 detail = frame.get("failure") or {}
-                future.set_exception(SDKError(frame["error"], detail.get("code", "OPERATION_FAILED"), detail.get("retryable", False)))
+                future.set_exception(SDKError(frame["error"], detail.get("code", "OPERATION_FAILED"), detail.get("retryable", False), detail.get("path", "")))
             else:
                 future.set_result(frame.get("result"))
 

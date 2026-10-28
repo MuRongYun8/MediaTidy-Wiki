@@ -48,6 +48,17 @@ return {"groups": [entry["value"] for entry in page["items"]],
 
 同来源更新保留安装实例和业务数据；不同来源的同名插件不能继承权限及空间。业务数据自行记录格式版本，回退代码不等于回退数据；遇到不支持的格式停止写入并提示恢复备份或迁移。
 
+`on_init` 会在启用、更新或重启等场景调用。初始化只补缺失值，不能每次覆盖用户设置。以下代码需要清单声明且用户授予 `storage`；安装或初始化不会绕过授权。
+
+```python
+def on_init(self, ctx):
+    saved = ctx.mt.storage.get(key="settings")
+    if not saved["found"]:
+        ctx.mt.storage.set(key="settings", value={"schemaVersion": 1, "threshold": 10})
+```
+
+`found=True` 的值即使为 `null`、空字符串或 `False` 也不是未初始化。不要通过更换插件 ID 或卸载重装实施升级；重新安装与更新的实例归属规则不同。
+
 宿主数据管理可导出 KV 和非密钥配置，恢复前预检来源、格式、容量、配置字段，正式恢复再次检查。恢复覆盖业务键及配置并停用插件；活动或结果未知任务会阻止清空与恢复。备份不含授权、密钥、确认信息及内部额度。
 
 `data_dir` 文件不在 KV 导出中，需单独备份。卸载默认保留业务数据，重新安装时核对来源并显式关联；关联后仍需检查配置与授权。不要把卸载保留等同于系统文件的完整备份。

@@ -63,3 +63,9 @@ node --test plugin-ui-schema/schema.test.cjs plugin-ui-schema/data-schema.test.c
 | outcome_unknown | 核对原任务与逐文件状态，禁止无条件重试 |
 
 报告应写出实际执行的命令和环境，单独列出尚未进行的真实服务、浏览器或容器验证。[实现对应关系](implementation-status.md)用于定位源码，不是历史通过记录的替代品。
+
+## 结构化位置与管理接口诊断
+
+宿主校验错误保留 `code/message/retryable`，新增可选 `path`，例如 `config.groups[1].name`、`permissions[0]` 或 `content[0].props.bind`。前端显示错误码与字段位置，Python `SDKError.path` 也保留此信息。诊断不返回被拒绝的配置值、密钥或原始数据库异常；插件 `validate_config` 返回的字段错误只公开声明的字段位置及宿主提示，请将字段填写要求写在插件说明中。
+
+`GET /api/plugins` 的 `data` 仍是正常安装列表；存在坏记录时，响应顶层增加 `diagnostics: [{recordId, kind, code, message}]`。坏记录不会伪装成可运行插件，当前错误码为 `INSTALLATION_CORRUPTED`。异步安装失败保留原 `error` 文本，并可通过安装任务的 `failure` 读取结构化错误。

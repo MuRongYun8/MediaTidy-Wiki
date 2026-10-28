@@ -16,6 +16,14 @@
 
 耗时宿主操作返回任务引用。调用 `ctx.mt.tasks.wait(refs=[...], completion={"action":"collect", "input":{...}})` 后立即返回。完成动作需在清单标记 `kind: "continuation"`，并用 `@continuation("collect")` 注册；它不能被页面、公开 API、定时或普通订阅调用。等待会释放业务通道，原公开动作名额仍被占用；续接保持原构建、配置、根流程与幂等信息。
 
+日志、进度或 Storage 写入应在 `tasks.wait` 之前完成。登记等待后（包括 `finally` 中）继续调用 SDK 会收到 `FLOW_WAITING`；异步接口遵循同样规则。
+
+```python
+ctx.mt.log(level="info", message="任务已提交，等待完成后继续")
+ctx.mt.tasks.wait(refs=[task["ref"]], completion={"action": "collect", "input": {}})
+return {"waiting": True}
+```
+
 ## 定时与方案事件
 
 触发器使用清单声明的稳定 key；在初始化中用 `ctx.mt.triggers.schedules.upsert(...)` 或 `ctx.mt.triggers.events.upsert(...)` 登记。**schedule 参数是 `declarationKey`（Python `declaration_key`），event 参数是 `key`**。重复初始化复用登记并保留用户暂停状态，新增登记默认暂停。删除清单声明会清理对应触发器。

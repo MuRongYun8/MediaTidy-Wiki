@@ -6,6 +6,8 @@
 
 | Python 方法 | 权限 | 每运行上限 | 允许通道 |
 |---|---|---:|---|
+| `emby.servers.list` | emby.api | 500 | action, query, page |
+| `emby.request` | emby.api | 500 | action |
 | `ffprobe.cache_exists` | ffprobe.cache.exists | 500 | action, query, page |
 | `ai.capabilities` | — | 500 | action |
 | `ai.chat` | ai.chat | 78 | action |

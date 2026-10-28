@@ -9,9 +9,10 @@ current: contextvars.ContextVar[Context | None] = contextvars.ContextVar("mt_inv
 
 
 class SDKError(RuntimeError):
-    def __init__(self, message: str, code: str = "OPERATION_FAILED", retryable: bool = False):
+    def __init__(self, message: str, code: str = "OPERATION_FAILED", retryable: bool = False, path: str = ""):
         super().__init__(message)
         self.code, self.retryable = code, retryable
+        self.path = path
 
 
 def _register(kind: str, name: str) -> Callable:
