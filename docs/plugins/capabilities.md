@@ -6,6 +6,8 @@
 
 | Python 方法 | 权限 | 每运行上限 | 允许通道 |
 |---|---|---:|---|
+| `artifacts.publish` | storage | 100 | action |
+| `artifacts.delete` | storage | 100 | action |
 | `emby.servers.list` | emby.api | 500 | action, query, page |
 | `emby.request` | emby.api | 500 | action |
 | `ffprobe.cache_exists` | ffprobe.cache.exists | 500 | action, query, page |

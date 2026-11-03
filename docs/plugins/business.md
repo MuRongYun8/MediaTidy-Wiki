@@ -24,6 +24,8 @@
 
 选择器返回文件或目录描述到 `ctx.files`，选择目录不会隐式展开全部文件。逐页浏览用 `files.list`；递归扫描用 `files.scan`，等待扫描任务后分页读取 `tasks.items`。列表和任务明细单页最多 100，完整工作流最多 500，底层扫描另有容量限制，见[大批量流程](workflow-capacity.md)。
 
+文件对象包含可选的 `sha1` 字段：115 或其他存储后端提供非空 SHA1 时返回，保留上游大小写；目录、本地文件以及上游未提供 SHA1 的文件省略该字段，不返回空字符串或 `null`。`files.list`、`files.stat`、`ctx.files` 以及扫描/搜索的 `tasks.items` 文件对象遵循同一规则。宿主只透传已有元数据，不为补齐 SHA1 额外查询、下载或计算文件哈希；插件应使用 `file.get("sha1")` 判断是否可用。
+
 文件变更默认不覆盖；跨目录操作检查源与目标授权及文件版本。根目录不可删除，递归删除须显式指定。宿主遵循路径路由、限流和取消语义；不支持的云盘操作返回 `UNSUPPORTED`，不要通过直接拼接路径绕开检查。
 
 ## 查询本地 FF 缓存是否存在
@@ -83,6 +85,8 @@ return {"taskRef": task["ref"], "status": "waiting"}
 异步对应 `adownload/aread_bytes/aupload/awrite_bytes`。`destination` 是 `{"rootId": "...", "path": "relative.png"}`。流式传输上限 256 MiB，不把二进制塞入 JSON RPC；覆盖必须明确 `overwrite` 和目标 `version`。
 
 当前二进制读取、写入和文件图片预览支持本地/FUSE 授权目录；其他未支持路由返回 `UNSUPPORTED`。宿主接管已提交上传的工作文件，随后清理工作目录不会使排队任务丢失数据。Pillow 示例演示读取、缩放、写回、等待任务与文件引用预览。
+
+仅需要预览或上传生成图片时，可以使用 [临时图片](artifacts.md)：`ctx.mt.artifacts.publish(path=...)` 接管当前工作目录的图片，返回可跨动作使用的引用，不需要授权媒体目录。[Emby 文件传输](emby.md#文件上传与下载)支持从 Emby 下载素材，并通过图片引用上传合成结果。
 
 ## AI 调用
 

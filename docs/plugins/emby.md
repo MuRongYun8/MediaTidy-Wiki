@@ -50,6 +50,11 @@ items = result["data"]["Items"]
 | `path` | 必填，以 `/` 开头的 API 路径；可带 `/emby` 前缀，MT 避免重复拼接；最多 2048 字节 |
 | `query` | 参数字典；值支持字符串、数值、布尔值或这些值的数组；数组变成重复参数。最多 100 个参数，编码后最多 16 KiB |
 | `json` | 可选 JSON 请求体，最多 256 KiB；GET/HEAD 不接受请求体 |
+| `body_file` / JSON `bodyFile` | 可选，当前动作工作目录中的普通文件，最多 8 MiB |
+| `body_ref` / JSON `bodyRef` | 可选，已发布且未过期的临时图片引用，另需 `storage` 权限 |
+| `content_type` / JSON `contentType` | 文件请求体必填 MIME，例如 `image/jpeg` |
+| `body_encoding` / JSON `bodyEncoding` | 文件请求体编码：默认 `raw`，或 `base64` |
+| `response_type` / JSON `responseType` | 默认 `auto`，或使用 `file` 接收二进制响应 |
 | `timeout_ms` / JSON `timeoutMs` | 默认 30000，显式值为 500–60000 毫秒 |
 
 顶层 Python 关键字使用 snake_case；`query` 和 `json` 内部键名按 Emby 接口原样传递，例如 `ParentId`、`Recursive`，不会自动改名。Emby 接口要求逗号分隔时传字符串，例如 `"IncludeItemTypes": "Movie,Series"`。
@@ -57,6 +62,42 @@ items = result["data"]["Items"]
 返回 `{"status": HTTP状态码, "data": 响应内容}`。合法 JSON 解析为 Python 对象，UTF-8 文本保留字符串，空响应为 `None`；响应最多 512 KiB，需通过分页控制结果大小。401、403、404、429、500 等仍作为 HTTP 结果返回，插件必须检查 `status`，不会被伪装成空列表。
 
 每次运行最多调用 `request` 500 次；列表查询另有每运行 500 次上限。支持 HTTP、HTTPS、反代前缀和历史带 `/emby` 的配置，不要求 MT 管理页面使用 HTTPS。
+
+## 文件上传与下载
+
+`json`、`body_file`、`body_ref` 只能选择一个；GET/HEAD 不接受请求体。文件上传必须填写 `content_type`。`body_file` 只能引用当前动作的工作文件，符号链接不能越界；`body_ref` 必须属于当前插件实例，且仍有 `storage` 授权。原始文件最大 8 MiB，Base64 编码后的增长不占用 RPC 消息额度。
+
+```python
+from pathlib import Path
+from urllib.parse import quote
+
+# 下载素材到当前动作的工作目录；不把二进制放入 JSON/RPC。
+result = ctx.mt.emby.request(
+    server_id=server_id, path=f"/Items/{quote(item_id, safe='')}/Images/Primary",
+    response_type="file",
+)
+if result["status"] != 200 or not result.get("file"):
+    raise ValueError(f"下载图片未成功：HTTP {result['status']}")
+source = Path(result["file"]["path"])
+# 用 Pillow 读取 source，合成到 Path(ctx.work_dir) / "poster.jpg"。
+
+artifact = ctx.mt.artifacts.publish(path=str(Path(ctx.work_dir) / "poster.jpg"))
+# 保存 artifact 到 KV，页面用 file:<ref> 预览，另一个动作再上传。
+uploaded = ctx.mt.emby.request(
+    server_id=server_id, method="POST",
+    path=f"/Items/{quote(item_id, safe='')}/Images/Primary",
+    body_ref=artifact["ref"], content_type=artifact["contentType"],
+    body_encoding="base64",
+)
+if not 200 <= uploaded["status"] < 300:
+    raise ValueError(f"上传未成功：HTTP {uploaded['status']}")
+```
+
+文件响应增加 `file: {path, contentType, size}`，同时 `data` 为 `None`。仅成功的二进制响应生成文件，最大 8 MiB；成功的 JSON/文本仍返回经过解析和脱敏的 `data`，错误响应保留 HTTP 状态且不会变成图片文件，非文本错误正文以宿主提示替代。下载失败、超限或取消时删除未完成文件。
+
+下载文件随动作结束清理，需要跨动作使用时显式发布为[临时图片](artifacts.md)。发布不改变图片字节，上传 `body_ref` 即上传此前预览的图片。Emby 图片上传要求纯 Base64 请求体及对应图片 MIME，不是 JSON 字符串，也不是 `data:image/...` 地址，见 [Emby 图片上传接口](https://dev.emby.media/reference/RestAPI/ImageService/postItemsByIdImagesByType.html)。
+
+文件传输继续只允许动作及续接，使用同一服务器授权和请求次数额度，不开放任意鉴权头或自动重试。完整可打包的示例见 [Emby 海报示例](/plugins/emby-poster)。
 
 ## 常见操作示例
 
@@ -108,6 +149,6 @@ MT 自动注入 `X-Emby-Token`，不提供自定义鉴权头或 API Key 读取�
 
 宿主校验或网络失败抛出 `SDKError`，可读取 `.code`：`PERMISSION_DENIED`、`CONTEXT_DENIED`、`INVALID_ARGUMENT`、`EMBY_SERVER_DISABLED`、`EMBY_NOT_CONFIGURED`、`NOT_FOUND`、`EMBY_TIMEOUT`、`EMBY_UNAVAILABLE`、`EMBY_RESPONSE_ERROR`、`CANCELLED` 等。不得将错误当作零媒体或刷新成功。
 
-宿主不自动重试请求。写操作遇到超时、取消或响应读取失败时，远端可能已经执行；先核对 Emby 状态，避免重复删除或修改。首期仅支持 JSON/文本，不支持流式播放、二进制上传下载或 WebSocket。
+宿主不自动重试请求。写操作遇到超时、取消或响应读取失败时，远端可能已经执行；先核对 Emby 状态，避免重复删除或修改。文件传输使用上文显式参数，不支持流式播放或 WebSocket；默认 JSON/文本请求保持兼容。
 
 同为 SDK v2 的旧宿主可能没有 `emby.api`，安装时会报告未知能力，需升级到包含本功能的 MT。完整契约见 [methods.json](/downloads/plugins-sdk-v2/methods.json)。

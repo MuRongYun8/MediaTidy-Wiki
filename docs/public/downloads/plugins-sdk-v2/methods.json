@@ -2,6 +2,82 @@
   "sdkVersion": "2",
   "methods": [
     {
+      "name": "artifacts.publish",
+      "permission": "storage",
+      "limit": 100,
+      "input": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "ref": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string",
+            "enum": [
+              "image/png",
+              "image/jpeg",
+              "image/webp"
+            ]
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 8388608
+          },
+          "expiresAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ref",
+          "contentType",
+          "size",
+          "expiresAt"
+        ],
+        "additionalProperties": false
+      },
+      "contexts": [
+        "action"
+      ]
+    },
+    {
+      "name": "artifacts.delete",
+      "permission": "storage",
+      "limit": 100,
+      "input": {
+        "type": "object",
+        "properties": {
+          "ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "ref"
+        ],
+        "additionalProperties": false
+      },
+      "output": {
+        "type": "boolean"
+      },
+      "contexts": [
+        "action"
+      ]
+    },
+    {
       "name": "emby.servers.list",
       "permission": "emby.api",
       "limit": 500,
@@ -99,6 +175,33 @@
             "type": "integer",
             "minimum": 500,
             "maximum": 60000
+          },
+          "bodyFile": {
+            "type": "string",
+            "minLength": 1
+          },
+          "bodyRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "contentType": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "bodyEncoding": {
+            "type": "string",
+            "enum": [
+              "raw",
+              "base64"
+            ]
+          },
+          "responseType": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "file"
+            ]
           }
         },
         "required": [
@@ -113,7 +216,28 @@
           "status": {
             "type": "integer"
           },
-          "data": {}
+          "data": {},
+          "file": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "contentType": {
+                "type": "string"
+              },
+              "size": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "path",
+              "contentType",
+              "size"
+            ],
+            "additionalProperties": false
+          }
         },
         "required": [
           "status",
@@ -1182,6 +1306,9 @@
                 },
                 "modifiedAt": {
                   "type": "string"
+                },
+                "sha1": {
+                  "type": "string"
                 }
               },
               "required": [
@@ -1947,6 +2074,9 @@
           },
           "modifiedAt": {
             "type": "string"
+          },
+          "sha1": {
+            "type": "string"
           }
         },
         "required": [
@@ -2560,6 +2690,9 @@
                   },
                   "modifiedAt": {
                     "type": "string"
+                  },
+                  "sha1": {
+                    "type": "string"
                   }
                 },
                 "required": [
@@ -2719,6 +2852,9 @@
                           "type": "boolean"
                         },
                         "modifiedAt": {
+                          "type": "string"
+                        },
+                        "sha1": {
                           "type": "string"
                         }
                       },
@@ -2969,6 +3105,9 @@
                       "type": "boolean"
                     },
                     "modifiedAt": {
+                      "type": "string"
+                    },
+                    "sha1": {
                       "type": "string"
                     }
                   },
@@ -6166,6 +6305,9 @@
                       "type": "boolean"
                     },
                     "modifiedAt": {
+                      "type": "string"
+                    },
+                    "sha1": {
                       "type": "string"
                     }
                   },

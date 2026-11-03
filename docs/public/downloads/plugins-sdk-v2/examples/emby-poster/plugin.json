@@ -1,0 +1,30 @@
+{
+  "id": "example.emby-poster",
+  "name": "Emby 海报预览与上传示例",
+  "version": "1.0.0",
+  "sdkVersion": "2",
+  "entry": "plugin.py:Plugin",
+  "description": "下载 Emby 主图，用 Pillow 合成并预览，再明确上传到同一目标。",
+  "author": "MediaTidy",
+  "permissions": ["emby.api", "storage"],
+  "actions": [
+    {
+      "id": "prepare",
+      "label": "下载并生成海报",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "serverId": {"type": "string", "minLength": 1},
+          "itemId": {"type": "string", "minLength": 1},
+          "caption": {"type": "string", "maxLength": 100}
+        },
+        "required": ["serverId", "itemId", "caption"],
+        "additionalProperties": false
+      },
+      "outputSchema": {}
+    },
+    {"id": "upload", "label": "替换目标主图", "inputSchema": {"type": "object", "properties": {}, "additionalProperties": false}, "outputSchema": {}}
+  ],
+  "queries": [{"id": "latest", "label": "最近海报", "inputSchema": {"type": "object"}, "outputSchema": {}}],
+  "ui": {"mode": "python", "version": "2"}
+}

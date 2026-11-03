@@ -4,9 +4,11 @@
 
 也可在 MT「插件中心」点击「下载开发 Skill 完整包」。该入口使用登录后的 `GET /api/plugins/development/skill.zip`，返回随主程序打包的资源；旧主程序内置的包可能早于 Wiki，请同时核对宿主支持的能力。
 
-当前开发包保持 SDK 2.0.0，已同步以下能力和示例：
+当前开发包保持 SDK 2.0.0，文档与下载内容更新于 **2026-11-03**，已同步以下能力和示例：
 
-- [Emby 配置与通用 API](emby.md)：`emby.servers.list()`、`emby.request()`，包含同步、异步接口与服务器授权说明。
+- [Emby 配置与通用 API](emby.md)：`emby.request()` 新增文件下载、工作文件或图片引用上传及 Base64 请求体编码，保留服务器授权与自动鉴权。
+- [临时图片与预览](artifacts.md)：`artifacts.publish/delete`，使用 `storage` 权限，无需媒体目录授权；图片可跨动作预览和上传，24 小时后自动清理。
+- [Emby 海报示例](/plugins/emby-poster)：下载素材、用 Pillow 合成 1920×1080 图片、预览后上传到保存的目标，完整源码与锁文件包含在下载包中。
 - [目录选择与按钮反馈](ui.md)：`ui.DirectoryPicker`、读写目录授权、`Button.loading` 绑定及页面 `state` 默认值。
 - [配置修复与错误诊断](user-guide.md)：Schema 配置 JSON 编辑、升级授权变化、异常安装记录提示及带字段位置的错误。
 - [存储初始化](storage.md)只补缺失值，以及 [`tasks.wait` 登记后立即返回](automation.md)的用法。
@@ -27,6 +29,7 @@ mediatidy-plugin-development/
 └── assets/
     ├── plugin-sdk/starter/
     ├── plugin-sdk/examples/pillow/
+    ├── plugin-sdk/examples/emby-poster/
     ├── plugin-sdk/examples/react/
     ├── plugin-sdk/examples/storage-table/
     └── plugin-frontend-sdk/   React 公开类型与宿主接口

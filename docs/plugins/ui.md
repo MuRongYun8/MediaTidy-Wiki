@@ -56,6 +56,8 @@ onClick 支持 set、invoke、query 和 host 事件。host 支持 saveConfig、r
 
 单页最多 256 KiB、500 个组件、深度 12，表格最多 12 列。图片可使用清单声明的 UI 资源路径，或 `file:<宿主文件引用>`；后者只预览授权的 PNG、JPEG、WebP，最多 8 MiB。禁止任意网页地址。组件属性见 [注册表](/downloads/plugins-sdk-v2/ui-registry.json)。
 
+插件生成的图片可先通过 `ctx.mt.artifacts.publish(path=...)` 交给宿主，再使用 `file:<返回的 ref>`；这类[临时图片](artifacts.md)只需 `storage` 权限，不需要媒体目录授权。React 使用 `mt.previewUrl(ref)`。Python `ui.Image` 不直接解析 Base64 地址；React 代码运行于受信任的共享 JavaScript 环境，不能把 Python 组件的约束描述为所有工作台页面全面禁止 Base64。
+
 ### 校验诊断与按钮尺寸
 
 未知组件、属性、事件和绑定仍会被拒绝。错误会包含具体路径，例如 `content[0].props.columns[1].cells[0].props.size`，以及允许的属性或枚举值；修正后点击宿主“刷新页面”重试。插件页面失败时，宿主设置、授权、日志和任务入口仍可使用。

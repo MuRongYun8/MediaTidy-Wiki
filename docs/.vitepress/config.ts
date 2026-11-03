@@ -47,6 +47,8 @@ export default defineConfig({
             { text: '完整能力清单', link: '/plugins/capabilities' },
             { text: '业务接口', link: '/plugins/business' },
             { text: 'Emby 配置与通用 API', link: '/plugins/emby' },
+            { text: 'Emby 海报预览与上传示例', link: '/plugins/emby-poster' },
+            { text: '临时图片与预览', link: '/plugins/artifacts' },
             { text: 'AI 自主识别示例', link: '/plugins/ai-organize' },
             { text: '大批量工作流', link: '/plugins/workflow-capacity' },
             { text: '权限与资源边界', link: '/plugins/permissions' },

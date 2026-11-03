@@ -14,6 +14,7 @@ MediaTidy 插件通过 Python 实现业务，使用宿主的文件、媒体、�
 | 选择 Python 或 React 页面 | [双模式 UI](ui.md) |
 | 使用文件、整理、AI 等宿主能力 | [业务接口](business.md)、[能力清单](capabilities.md)、[权限](permissions.md) |
 | 读取 Emby 配置、查询或管理 Emby | [Emby 配置与通用 API](emby.md) |
+| 展示生成海报、跨动作上传图片 | [临时图片与预览](artifacts.md)、[Emby 海报示例](/plugins/emby-poster) |
 | 后台任务、定时和完成回调 | [生命周期与续接](automation.md) |
 | 保存结果、查看日志、处理大量文件 | [存储](storage.md)、[日志](logs.md)、[工作流容量](workflow-capacity.md) |
 | 理解 AI 识别整理示例 | [AI 工作流](ai-organize.md) |

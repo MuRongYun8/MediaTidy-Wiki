@@ -27,6 +27,14 @@ class AIChatOutput(TypedDict):
 def _input(value: dict[str, Any] | None, kwargs: dict[str, Any]) -> dict[str, Any]:
     return value if value is not None else {k.split("_")[0] + "".join(p.title() for p in k.split("_")[1:]): v for k, v in kwargs.items()}
 
+class Artifacts:
+    def __init__(self, call: Callable[..., Any]):
+        self._call = call
+    def publish(self, payload: dict[str, Any] | None = None, /, **kwargs: Any) -> Any:
+        return self._call('artifacts.publish', _input(payload, kwargs))
+    def delete(self, payload: dict[str, Any] | None = None, /, **kwargs: Any) -> Any:
+        return self._call('artifacts.delete', _input(payload, kwargs))
+
 class EmbyServers:
     def __init__(self, call: Callable[..., Any]):
         self._call = call
@@ -306,6 +314,7 @@ class Triggers:
 class Client:
     def __init__(self, call: Callable[..., Any]):
         self._call = call
+        self.artifacts = Artifacts(call)
         self.emby = Emby(call)
         self.ffprobe = Ffprobe(call)
         self.ai = Ai(call)
@@ -328,6 +337,14 @@ class Client:
         self.triggers = Triggers(call)
     def log(self, payload: dict[str, Any] | None = None, /, **kwargs: Any) -> Any:
         return self._call('log', _input(payload, kwargs))
+
+class AsyncArtifacts:
+    def __init__(self, call: Callable[..., Any]):
+        self._call = call
+    async def publish(self, payload: dict[str, Any] | None = None, /, **kwargs: Any) -> Any:
+        return await self._call('artifacts.publish', _input(payload, kwargs))
+    async def delete(self, payload: dict[str, Any] | None = None, /, **kwargs: Any) -> Any:
+        return await self._call('artifacts.delete', _input(payload, kwargs))
 
 class AsyncEmbyServers:
     def __init__(self, call: Callable[..., Any]):
@@ -608,6 +625,7 @@ class AsyncTriggers:
 class AsyncClient:
     def __init__(self, call: Callable[..., Any]):
         self._call = call
+        self.artifacts = AsyncArtifacts(call)
         self.emby = AsyncEmby(call)
         self.ffprobe = AsyncFfprobe(call)
         self.ai = AsyncAi(call)
