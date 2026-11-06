@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "plugins": [
+    { "id": "example.directory-inventory", "path": "inventory" },
+    { "id": "example.storage-table", "path": "storage-table" }
+  ]
+}

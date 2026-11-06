@@ -170,7 +170,8 @@ async def serve(transport: Transport, boot: dict) -> None:
         except asyncio.CancelledError:
             transport.send({"type": "result", "id": frame["id"], "error": "Invocation cancelled"})
         except SDKError as error:
-            transport.send({"type": "result", "id": frame["id"], "error": f"{error.code}: {error}"[:2000]})
+            transport.send({"type": "result", "id": frame["id"], "error": f"{error.code}: {error}"[:2000],
+                            "failure": {"code": error.code, "message": str(error), "retryable": error.retryable, "path": error.path}})
         except BaseException:
             transport.send({"type": "result", "id": frame["id"], "error": "插件执行失败，请查看日志", "diagnostic": ("".join(traceback.format_exception_only(sys.exception())) + traceback.format_exc())[:32000]})
         finally:

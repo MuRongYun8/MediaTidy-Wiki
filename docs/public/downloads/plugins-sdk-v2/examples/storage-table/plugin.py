@@ -1,5 +1,25 @@
 """Local-only example: paged scan results and row actions; no media is modified."""
+import json
 from mt_plugin import Plugin as BasePlugin, Context, SDKError, action, query, ui
+
+
+def write_versions(ctx: Context, prefix: str, versions: list[str], target_bytes: int = 120 * 1024) -> int:
+    """Split a growing group by JSON UTF-8 bytes, never by character count."""
+    parts, chunk_bytes = 0, 2
+    chunk: list[str] = []
+    for version in versions:
+        item_bytes = len(json.dumps(version, ensure_ascii=False, separators=(',', ':')).encode('utf-8'))
+        if item_bytes + 2 > target_bytes:
+            raise SDKError('单条结果超过分片容量，请缩小结果内容', 'QUOTA_EXCEEDED')
+        if chunk and chunk_bytes + 1 + item_bytes > target_bytes:
+            ctx.mt.storage.set(key=f'{prefix}/{parts:06d}', value=chunk)
+            parts, chunk, chunk_bytes = parts + 1, [], 2
+        chunk_bytes += item_bytes + bool(chunk)
+        chunk.append(version)
+    if chunk:
+        ctx.mt.storage.set(key=f'{prefix}/{parts:06d}', value=chunk)
+        parts += 1
+    return parts
 
 
 class Plugin(BasePlugin):
@@ -37,17 +57,22 @@ class Plugin(BasePlugin):
         summary_key = f"scans/{scan_id}/summary"
         # Keep this pointer tiny. Queries can show running/failed without loading all rows.
         ctx.mt.storage.set(key=summary_key, value={"status": "running", "count": 0})
-        ctx.mt.storage.set(key="currentScan", value=scan_id)
+        ctx.mt.storage.set(key="activeScan", value=scan_id)
         count = 0
         try:
             for index in range(input["count"]):
                 key = prefix + f"{index:06d}"
+                parts = write_versions(ctx, f'scans/{scan_id}/versions/{index:06d}',
+                                       ["演示目录/版本A.strm", "演示目录/版本B.strm"])
                 ctx.mt.storage.set(key=key, expected_revision="", value={
                     "id": key, "name": f"演示作品 {index + 1}", "kept": False,
-                    "versions": ["演示目录/版本A.strm", "演示目录/版本B.strm"],
+                    "versionParts": parts, "versionCount": 2,
                 })
                 count += 1
-            ctx.mt.storage.set(key=summary_key, value={"status": "done", "count": count})
+            ctx.mt.storage.batch(operations=[
+                {"operation": "set", "key": summary_key, "value": {"status": "done", "count": count}},
+                {"operation": "set", "key": "currentScan", "value": scan_id},
+            ])
             return {"scanId": scan_id, "count": count}
         except Exception:
             # Preserve rows already written and propagate the original failure.
@@ -62,9 +87,11 @@ class Plugin(BasePlugin):
     @query("summary")
     def summary(self, input: dict, ctx: Context):
         current = ctx.mt.storage.get(key="currentScan")
-        if not current["found"]:
+        active = ctx.mt.storage.get(key="activeScan")
+        selected = current if current["found"] else active
+        if not selected["found"]:
             return {"groups": [], "nextCursor": "", "message": "尚未生成结果"}
-        scan_id = current["value"]
+        scan_id = selected["value"]
         summary = ctx.mt.storage.get(key=f"scans/{scan_id}/summary")["value"]
         prefix = f"scans/{scan_id}/groups/"
         cursor = input.get("cursor", "")
@@ -73,6 +100,11 @@ class Plugin(BasePlugin):
         page = ctx.mt.storage.list(prefix=prefix, cursor=cursor, limit=20, values=True)
         status = summary["status"]
         message = {"done": f"完成：共 {summary['count']} 组", "running": "尚未完成，请检查运行状态", "failed": "生成失败，保留部分结果，请查看运行日志"}[status]
+        if active["found"] and active["value"] != scan_id:
+            latest = ctx.mt.storage.get(key=f"scans/{active['value']}/summary")
+            latest_summary: dict = latest.get('value') or {}
+            latest_status = latest_summary.get('status', 'running')
+            message += '；最新扫描失败，继续显示最近成功结果' if latest_status == 'failed' else '；最新扫描尚未完成，继续显示最近成功结果'
         return {"groups": [entry["value"] for entry in page["items"]],
                 "nextCursor": page.get("nextCursor", ""), "message": message}
 
@@ -80,6 +112,8 @@ class Plugin(BasePlugin):
     def decide(self, input: dict, ctx: Context):
         key = input["id"]
         current = ctx.mt.storage.get(key="currentScan")
+        if not current["found"]:
+            current = ctx.mt.storage.get(key="activeScan")
         prefix = f"scans/{current.get('value', '')}/groups/"
         if not current["found"] or not key.startswith(prefix):
             raise SDKError("结果已更新，请刷新后重试", "CONFLICT")

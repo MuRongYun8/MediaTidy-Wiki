@@ -9,6 +9,7 @@ MediaTidy 插件通过 Python 实现业务，使用宿主的文件、媒体、�
 | 你要做什么 | 阅读入口 |
 |---|---|
 | 安装、授权、更新和排错 | [插件中心使用指南](user-guide.md) |
+| 从一个来源发布或安装多个插件 | [多插件仓库与 ZIP](collections.md) |
 | 给 AI 使用完整开发包 | [下载与使用 Skill](downloads.md) |
 | 编写第一个 Python 插件 | [快速开始](getting-started.md)、[清单与数据契约](manifest.md) |
 | 选择 Python 或 React 页面 | [双模式 UI](ui.md) |

@@ -4,7 +4,9 @@
 
 也可在 MT「插件中心」点击「下载开发 Skill 完整包」。该入口使用登录后的 `GET /api/plugins/development/skill.zip`，返回随主程序打包的资源；旧主程序内置的包可能早于 Wiki，请同时核对宿主支持的能力。
 
-当前开发包保持 SDK 2.0.0，文档与下载内容更新于 **2026-11-03**，已同步以下能力和示例：
+当前开发包保持 SDK 2.0.0，文档与下载内容更新于 **2026-11-06**。多插件来源需要配套的 MT 0.1.14 宿主（当前未发布），下载开发包不会为旧宿主增加该能力。已同步以下能力和示例：
+
+- [多插件仓库与 ZIP](collections.md)：索引发布、逐个选包、固定目录更新、标签锁定、ZIP 来源保留与回滚；附[两插件集合组包示例](/plugins/collection)，使用现有 SDK 分别构建后组合，保留单插件包兼容旧宿主。
 
 - [Emby 配置与通用 API](emby.md)：`emby.request()` 新增文件下载、工作文件或图片引用上传及 Base64 请求体编码，保留服务器授权与自动鉴权。
 - [临时图片与预览](artifacts.md)：`artifacts.publish/delete`，使用 `storage` 权限，无需媒体目录授权；图片可跨动作预览和上传，24 小时后自动清理。
@@ -32,6 +34,8 @@ mediatidy-plugin-development/
     ├── plugin-sdk/examples/emby-poster/
     ├── plugin-sdk/examples/react/
     ├── plugin-sdk/examples/storage-table/
+    ├── plugin-sdk/examples/manual-organize/
+    ├── plugin-sdk/examples/collection/   集合索引与组包步骤
     └── plugin-frontend-sdk/   React 公开类型与宿主接口
 ```
 

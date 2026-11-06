@@ -26,9 +26,10 @@
 
 完整的[分键分页示例](/downloads/plugins-sdk-v2/examples/storage-table/plugin.py)使用合成查重结果，不访问云盘或修改媒体：
 
-- `currentScan` 只保存正在展示的扫描 ID。
+- `activeScan` 保存最近发起的扫描 ID；`currentScan` 保存最近成功的扫描 ID。新扫描失败时继续展示最近成功结果，首次失败时可查看部分结果。
 - `scans/<runId>/summary` 保存状态和计数；状态为 running、done 或 failed。
 - `scans/<runId>/groups/<序号>` 每个键保存一组结果，避免一份 JSON 随扫描持续增长。
+- 大组明细按实际 JSON UTF-8 字节拆到 `scans/<runId>/versions/<组序号>/<分片>`，组记录只保留计数和分片信息；单条过大明确报错，不静默截断。
 - 查询用 `storage.list(prefix=..., cursor=..., limit=20, values=True)`，返回条数可能受 1 MiB 返回容量限制，必须使用返回的 `nextCursor` 继续，不自行计算偏移。
 
 ```python
@@ -38,7 +39,7 @@ return {"groups": [entry["value"] for entry in page["items"]],
         "nextCursor": page.get("nextCursor", "")}
 ```
 
-先写 running 摘要，再逐组写入，全部成功才标记 done。失败要保留已经写入的数据、尽力记录 failed 并抛出原异常；取消或容量耗尽也可能阻止失败标记，因此 running 不等于成功或零结果，页面应提示检查宿主运行状态。运行结果只返回计数和扫描 ID，不复制全部组数据。
+先写 running 摘要，再逐组写入；全部成功后用一次 `storage.batch` 原子写入 done 摘要并切换 `currentScan`。失败要保留已经写入的数据、尽力记录 failed 并抛出原异常；取消或容量耗尽也可能阻止失败标记，因此 running 不等于成功或零结果，页面应提示检查宿主运行状态。运行结果只返回计数和扫描 ID，不复制全部组数据。
 
 对同一结果的修改先 `get` 再使用返回的 `revision` 作为 `expectedRevision`，避免覆盖并发编辑。不同扫描使用不同前缀；旧扫描游标不能继续读取新扫描。
 

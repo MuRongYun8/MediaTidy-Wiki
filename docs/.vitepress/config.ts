@@ -36,6 +36,8 @@ export default defineConfig({
           items: [
             { text: '文档首页', link: '/plugins/' },
             { text: '用户指南', link: '/plugins/user-guide' },
+            { text: '多插件仓库与 ZIP', link: '/plugins/collections' },
+            { text: '两插件集合示例', link: '/plugins/collection' },
             { text: '下载开发 Skill', link: '/plugins/downloads' },
           ],
         },

@@ -24,6 +24,8 @@
 
 选择器返回文件或目录描述到 `ctx.files`，选择目录不会隐式展开全部文件。逐页浏览用 `files.list`；递归扫描用 `files.scan`，等待扫描任务后分页读取 `tasks.items`。列表和任务明细单页最多 100，完整工作流最多 500，底层扫描另有容量限制，见[大批量流程](workflow-capacity.md)。
 
+`files.roots()` 返回数组，每项为 `id/name/storageType/read/write/delete`，不返回绝对路径。目录配置保存 `rootId + 相对路径`，不按路径前缀猜根。完整的[单文件整理示例](/downloads/plugins-sdk-v2/examples/manual-organize/plugin.py)演示目录选择、如实保存、分页取得引用、逐文件指定作品和等待任务完成；其提交按钮会真实执行授权方案，应在独立测试实例验证。
+
 文件对象包含可选的 `sha1` 字段：115 或其他存储后端提供非空 SHA1 时返回，保留上游大小写；目录、本地文件以及上游未提供 SHA1 的文件省略该字段，不返回空字符串或 `null`。`files.list`、`files.stat`、`ctx.files` 以及扫描/搜索的 `tasks.items` 文件对象遵循同一规则。宿主只透传已有元数据，不为补齐 SHA1 额外查询、下载或计算文件哈希；插件应使用 `file.get("sha1")` 判断是否可用。
 
 文件变更默认不覆盖；跨目录操作检查源与目标授权及文件版本。根目录不可删除，递归删除须显式指定。宿主遵循路径路由、限流和取消语义；不支持的云盘操作返回 `UNSUPPORTED`，不要通过直接拼接路径绕开检查。

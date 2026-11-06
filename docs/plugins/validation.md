@@ -69,3 +69,41 @@ node --test plugin-ui-schema/schema.test.cjs plugin-ui-schema/data-schema.test.c
 宿主校验错误保留 `code/message/retryable`，新增可选 `path`，例如 `config.groups[1].name`、`permissions[0]` 或 `content[0].props.bind`。前端显示错误码与字段位置，Python `SDKError.path` 也保留此信息。诊断不返回被拒绝的配置值、密钥或原始数据库异常；插件 `validate_config` 返回的字段错误只公开声明的字段位置及宿主提示，请将字段填写要求写在插件说明中。
 
 `GET /api/plugins` 的 `data` 仍是正常安装列表；存在坏记录时，响应顶层增加 `diagnostics: [{recordId, kind, code, message}]`。坏记录不会伪装成可运行插件，当前错误码为 `INSTALLATION_CORRUPTED`。异步安装失败保留原 `error` 文本，并可通过安装任务的 `failure` 读取结构化错误。
+
+## 运行诊断与授权取证
+
+插件详情的「运行诊断」在停用或初始化失败时也可打开。管理员接口 `GET /api/plugins/{id}/diagnostics` 只读取快照，不启动 worker、不执行插件代码。页面展示宿主版本、实例 ID、安装/运行构建、配置授权修订、能力与允许场景、目录摘要和数据空间归属，可复制或下载 JSON。导出不包含配置内容、绝对目录、密钥、环境变量、外部服务地址或日志正文。采集期间状态变化会提示刷新，未启用时没有 worker 不算故障。
+
+在同一次插件调用中可采集：
+
+```python
+info = ctx.mt.runtime.info()
+capabilities = ctx.mt.runtime.capabilities()
+resources = ctx.mt.runtime.resources()
+roots = ctx.mt.files.roots()
+```
+
+`runtime.info` 的可选字段 `hostVersion/packageHash/configRevision/invocationMode` 用于核对当前宿主、构建、授权修订与调用通道；旧宿主可能没有这些字段。能力列表增加 `declared/contexts/allowedInContext`，`granted` 只说明能力声明和授予均满足，不能替代目录、方案、状态和版本校验。
+
+`files.roots()` 返回数组，根条目不包含绝对路径。应记录其原始结构和 SDKError 的 `code/path`，不要把解析失败或 SDK 异常转换成空数组。选择根后用其 ID、相对路径 `.`、页码 1 读取目录；不要从绝对路径反推授权。
+
+文件读取和直接手动整理的核心接口对输入执行契约校验：缺少 `fileRef`、未知 `sourceDir` 或无效页码返回 `INVALID_ARGUMENT` 与字段位置；能力、资源或失效的运行上下文返回 `PERMISSION_DENIED` 及原因，调用场景错误返回 `CONTEXT_DENIED`。授权检查仍先于业务处理。Python 未捕获的宿主 SDK 错误会保留宿主确认过的结构化信息；插件自行制造的 SDKError 不构成可信宿主错误。
+
+## 离线契约测试
+
+公开客户端提供生成的输入/输出类型，JSON 字典入口继续可用；动态内容仍需运行时校验。推荐使用 snake_case 关键字，让 mypy 检查必填字段、参数名及返回结构。
+
+```python
+from mt_plugin import Context, SDKError
+from mt_plugin.testing import ContractTransport
+
+transport = ContractTransport(
+    {"files.roots": [], "storage.set": SDKError("存储授权已撤销", "PERMISSION_DENIED")},
+    manifest={"permissions": ["files.read", "storage"]},
+    grants={"capabilities": ["files.read", "storage"], "roots": []},
+)
+ctx = Context({"instanceId": "offline"}, transport, "test")
+assert ctx.mt.files.roots() == []
+```
+
+ContractTransport 校验输入、响应、调用通道及显式提供的声明/授权，支持注入失败；未配置的方法报错，不连接真实服务。它不模拟文件版本、真实整理、生命周期或并发语义，这些仍由宿主集成测试验证。

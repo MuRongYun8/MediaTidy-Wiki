@@ -1265,7 +1265,9 @@
             "type": "string"
           },
           "page": {
-            "type": "number"
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
           }
         },
         "required": [
@@ -3200,13 +3202,17 @@
         "type": "object",
         "properties": {
           "fileRef": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           },
           "profileId": {
-            "type": "number"
+            "type": "integer",
+            "minimum": 1
           },
           "tmdbId": {
-            "type": "number"
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2147483647
           },
           "mediaType": {
             "enum": [
@@ -3215,13 +3221,19 @@
             ]
           },
           "season": {
-            "type": "number"
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9999
           },
           "episode": {
-            "type": "number"
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9999
           },
           "idempotencyKey": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
           }
         },
         "required": [
@@ -4612,6 +4624,18 @@
             },
             "calls": {
               "type": "number"
+            },
+            "declared": {
+              "type": "boolean"
+            },
+            "contexts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "allowedInContext": {
+              "type": "boolean"
             }
           },
           "required": [
@@ -4690,6 +4714,18 @@
           "limits": {
             "type": "object",
             "additionalProperties": true
+          },
+          "hostVersion": {
+            "type": "string"
+          },
+          "packageHash": {
+            "type": "string"
+          },
+          "configRevision": {
+            "type": "string"
+          },
+          "invocationMode": {
+            "type": "string"
           }
         },
         "required": [
